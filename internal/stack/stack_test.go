@@ -17,7 +17,6 @@ func TestStackNotEmptyAfterPush(t *testing.T) {
 	assert.False(t, s.IsEmpty())
 }
 
-
 func TestStackIsEmptyAfterLastItemPopped(t *testing.T) {
 	s := NewStack()
 	s.Push(3025)
@@ -33,4 +32,13 @@ func TestStackIsLIFO(t *testing.T) {
 	assert.Equal(t, 5025, s.Pop(), "popped value should be 5025")
 	assert.Equal(t, 4025, s.Pop(), "popped value should be 4025")
 	assert.Equal(t, 3025, s.Pop(), "popped value should be 3025")
+}
+
+func TestStackCanPeek(t *testing.T) {
+	s := NewStack()
+	s.Push(3025)
+	s.Push(4025)
+	s.Push(5025)
+	assert.Equal(t, 5025, s.Peek(), "peeked value should be 5025")
+	assert.Equal(t, 5025, s.Pop(), "popped value should be 5025")
 }

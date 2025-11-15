@@ -2,7 +2,7 @@
 package stack
 
 type Stack struct {
-	stack   []int
+	stack []int
 }
 
 func NewStack() *Stack {
@@ -21,6 +21,10 @@ func (s *Stack) Push(val int) {
 
 func (s *Stack) Pop() int {
 	popped := s.stack[len(s.stack)-1]
-	s.stack = s.stack[0:len(s.stack)-1]
+	s.stack = s.stack[0 : len(s.stack)-1]
 	return popped
+}
+
+func (s *Stack) Peek() int {
+	return s.stack[len(s.stack)-1]
 }

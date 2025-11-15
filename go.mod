@@ -2,10 +2,7 @@ module github.com/phasecurve/zhuji
 
 go 1.24.1
 
-require (
-	github.com/go-playground/assert v1.2.1
-	github.com/stretchr/testify v1.11.1
-)
+require github.com/stretchr/testify v1.11.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
