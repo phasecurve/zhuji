@@ -107,3 +107,99 @@ func TestVMTraceMode(t *testing.T) {
 
 	assert.Equal(t, 30, st.Pop())
 }
+
+func TestEqualityTrue(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 5,
+		int(stack.PSH), 5,
+		int(stack.EQ),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, s.Pop())
+	assert.True(t, s.IsEmpty())
+}
+
+func TestEqualityFalse(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 5,
+		int(stack.PSH), 3,
+		int(stack.EQ),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 0, s.Pop())
+	assert.True(t, s.IsEmpty())
+}
+
+func TestLessThanTrue(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 3,
+		int(stack.PSH), 5,
+		int(stack.LT),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, s.Pop())
+	assert.True(t, s.IsEmpty())
+}
+
+func TestLessThanFalse(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 5,
+		int(stack.PSH), 3,
+		int(stack.LT),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 0, s.Pop())
+	assert.True(t, s.IsEmpty())
+}
+
+func TestGreaterThanTrue(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 5,
+		int(stack.PSH), 3,
+		int(stack.GT),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, s.Pop())
+	assert.True(t, s.IsEmpty())
+}
+
+func TestGreaterThanFalse(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 3,
+		int(stack.PSH), 5,
+		int(stack.GT),
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 0, s.Pop())
+	assert.True(t, s.IsEmpty())
+}

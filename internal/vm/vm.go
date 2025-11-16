@@ -65,6 +65,61 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] MUL        → %s\n", ip, vm.stack.String())
 			}
 			ip++
+		case stack.EQ:
+			vm.executeBinaryOp(func(a, b int) int {
+				if a == b {
+					return 1
+				}
+				return 0
+			})
+			if vm.traceEnabled {
+				fmt.Printf("[%d] EQ        → %s\n", ip, vm.stack.String())
+			}
+			ip++
+		case stack.LT:
+			vm.executeBinaryOp(func(a, b int) int {
+				if a < b {
+					return 1
+				}
+				return 0
+			})
+			if vm.traceEnabled {
+				fmt.Printf("[%d] LT        → %s\n", ip, vm.stack.String())
+			}
+			ip++
+		case stack.LTE:
+			vm.executeBinaryOp(func(a, b int) int {
+				if a <= b {
+					return 1
+				}
+				return 0
+			})
+			if vm.traceEnabled {
+				fmt.Printf("[%d] LTE        → %s\n", ip, vm.stack.String())
+			}
+			ip++
+		case stack.GT:
+			vm.executeBinaryOp(func(a, b int) int {
+				if a > b {
+					return 1
+				}
+				return 0
+			})
+			if vm.traceEnabled {
+				fmt.Printf("[%d] GT        → %s\n", ip, vm.stack.String())
+			}
+			ip++
+		case stack.GTE:
+			vm.executeBinaryOp(func(a, b int) int {
+				if a >= b {
+					return 1
+				}
+				return 0
+			})
+			if vm.traceEnabled {
+				fmt.Printf("[%d] GTE        → %s\n", ip, vm.stack.String())
+			}
+			ip++
 		case stack.DUP:
 			vm.stack.Dup()
 			ip++

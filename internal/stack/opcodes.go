@@ -11,4 +11,9 @@ const (
 	DUP
 	SWP
 	DRP
+	EQ
+	LT
+	LTE
+	GT
+	GTE
 )

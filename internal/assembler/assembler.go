@@ -38,6 +38,16 @@ func Assemble(input string) ([]int, error) {
 				byteCode = append(byteCode, int(stack.SWP))
 			case "drop":
 				byteCode = append(byteCode, int(stack.DRP))
+			case "eq":
+				byteCode = append(byteCode, int(stack.EQ))
+			case "lt":
+				byteCode = append(byteCode, int(stack.LT))
+			case "lte":
+				byteCode = append(byteCode, int(stack.LTE))
+			case "gt":
+				byteCode = append(byteCode, int(stack.GT))
+			case "gte":
+				byteCode = append(byteCode, int(stack.GTE))
 			default:
 				val, err := strconv.Atoi(inst)
 				if err != nil {

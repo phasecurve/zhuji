@@ -156,3 +156,83 @@ func TestDropInstruction(t *testing.T) {
 	assert.Equal(t, 10, st.Pop())
 	assert.True(t, st.IsEmpty())
 }
+
+func TestAssembleAndExecuteGT(t *testing.T) {
+	input := `push 5
+      push 3
+      gt`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestAssembleAndExecuteGTE(t *testing.T) {
+	input := `push 5
+      push 5
+      gte`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestAssembleAndExecuteLTE(t *testing.T) {
+	input := `push 5
+      push 5
+      lte`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestAssembleAndExecuteLT(t *testing.T) {
+	input := `push 3
+      push 5
+      lt`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestAssembleAndExecuteEQ(t *testing.T) {
+	input := `push 5
+      push 5
+      eq`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 1, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
