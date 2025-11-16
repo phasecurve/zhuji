@@ -3,9 +3,12 @@ package stack
 type OpCode int
 
 const (
-	PUSH OpCode = iota
+	PSH OpCode = iota
 	ADD
 	SUB
 	MUL
 	DIV
+	DUP
+	SWP
+	DRP
 )

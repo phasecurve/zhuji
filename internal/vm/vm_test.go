@@ -10,7 +10,7 @@ import (
 func TestExecuteSinglePushInstruction(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	pushOp := []int{int(stack.PUSH), 42}
+	pushOp := []int{int(stack.PSH), 42}
 
 	vm.Execute(pushOp)
 
@@ -20,7 +20,7 @@ func TestExecuteSinglePushInstruction(t *testing.T) {
 func TestExecuteMultiplePushInstructions(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	bytecode := []int{int(stack.PUSH), 10, int(stack.PUSH), 20}
+	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20}
 
 	vm.Execute(bytecode)
 
@@ -31,8 +31,8 @@ func TestExecuteMultiplePushInstructions(t *testing.T) {
 func TestExecuteAddInstruction(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	// PUSH 10, PUSH 20, ADD
-	bytecode := []int{int(stack.PUSH), 10, int(stack.PUSH), 20, int(stack.ADD)}
+	// PSH 10, PSH 20, ADD
+	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20, int(stack.ADD)}
 
 	vm.Execute(bytecode)
 
@@ -43,8 +43,8 @@ func TestExecuteAddInstruction(t *testing.T) {
 func TestExecuteSubInstruction(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	// PUSH 20, PUSH 10, SUB → (20 - 10 = 10)
-	bytecode := []int{int(stack.PUSH), 20, int(stack.PUSH), 10, int(stack.SUB)}
+	// PSH 20, PSH 10, SUB → (20 - 10 = 10)
+	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 10, int(stack.SUB)}
 
 	vm.Execute(bytecode)
 
@@ -55,8 +55,8 @@ func TestExecuteSubInstruction(t *testing.T) {
 func TestExecuteDivInstruction(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	// PUSH 20, PUSH 4, DIV → (20 / 4 = 5)
-	bytecode := []int{int(stack.PUSH), 20, int(stack.PUSH), 4, int(stack.DIV)}
+	// PSH 20, PSH 4, DIV → (20 / 4 = 5)
+	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 4, int(stack.DIV)}
 
 	vm.Execute(bytecode)
 
@@ -67,8 +67,8 @@ func TestExecuteDivInstruction(t *testing.T) {
 func TestExecuteMulInstruction(t *testing.T) {
 	st := stack.NewStack()
 	vm := NewVM(st)
-	// PUSH 20, PUSH 4, MUL → (20 * 4 = 80)
-	bytecode := []int{int(stack.PUSH), 20, int(stack.PUSH), 4, int(stack.MUL)}
+	// PSH 20, PSH 4, MUL → (20 * 4 = 80)
+	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 4, int(stack.MUL)}
 
 	vm.Execute(bytecode)
 
@@ -82,10 +82,10 @@ func TestExecuteComplexExpression(t *testing.T) {
 	// (5 + 3) * 2 = 16
 	// RPN: 5 3 + 2 *
 	bytecode := []int{
-		int(stack.PUSH), 5,
-		int(stack.PUSH), 3,
+		int(stack.PSH), 5,
+		int(stack.PSH), 3,
 		int(stack.ADD),
-		int(stack.PUSH), 2,
+		int(stack.PSH), 2,
 		int(stack.MUL),
 	}
 
@@ -100,7 +100,7 @@ func TestVMTraceMode(t *testing.T) {
 	vm := NewVM(st)
 	vm.EnableTrace() // Enable trace mode
 
-	bytecode := []int{int(stack.PUSH), 10, int(stack.PUSH), 20, int(stack.ADD)}
+	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20, int(stack.ADD)}
 
 	// In trace mode, VM prints to stdout (we won't assert output, just verify it doesn't crash)
 	vm.Execute(bytecode)

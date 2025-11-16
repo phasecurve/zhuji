@@ -13,7 +13,7 @@ func TestAssembleSinglePush(t *testing.T) {
 	bytecode, err := Assemble(input)
 
 	assert.NoError(t, err)
-	assert.Equal(t, []int{int(stack.PUSH), 42}, bytecode)
+	assert.Equal(t, []int{int(stack.PSH), 42}, bytecode)
 }
 
 func TestAssembleMultiplePushes(t *testing.T) {
@@ -22,7 +22,7 @@ func TestAssembleMultiplePushes(t *testing.T) {
 	bytecode, err := Assemble(input)
 
 	assert.NoError(t, err)
-	assert.Equal(t, []int{int(stack.PUSH), 10, int(stack.PUSH), 20}, bytecode)
+	assert.Equal(t, []int{int(stack.PSH), 10, int(stack.PSH), 20}, bytecode)
 }
 func TestAssembleAddInstruction(t *testing.T) {
 	input := `push 10
@@ -32,8 +32,8 @@ func TestAssembleAddInstruction(t *testing.T) {
 
 	assert.NoError(t, err)
 	expected := []int{
-		int(stack.PUSH), 10,
-		int(stack.PUSH), 20,
+		int(stack.PSH), 10,
+		int(stack.PSH), 20,
 		int(stack.ADD),
 	}
 	assert.Equal(t, expected, bytecode)
@@ -51,12 +51,12 @@ func TestAssembleAllArithmeticOperations(t *testing.T) {
 
 	assert.NoError(t, err)
 	expected := []int{
-		int(stack.PUSH), 20,
-		int(stack.PUSH), 10,
+		int(stack.PSH), 20,
+		int(stack.PSH), 10,
 		int(stack.SUB),
-		int(stack.PUSH), 2,
+		int(stack.PSH), 2,
 		int(stack.MUL),
-		int(stack.PUSH), 4,
+		int(stack.PSH), 4,
 		int(stack.DIV),
 	}
 	assert.Equal(t, expected, bytecode)
@@ -72,8 +72,8 @@ func TestAssembleWithComments(t *testing.T) {
 
 	assert.NoError(t, err)
 	expected := []int{
-		int(stack.PUSH), 42,
-		int(stack.PUSH), 10,
+		int(stack.PSH), 42,
+		int(stack.PSH), 10,
 		int(stack.ADD),
 	}
 	assert.Equal(t, expected, bytecode)
@@ -97,5 +97,62 @@ func TestAssembleAndExecute(t *testing.T) {
 	vm.Execute(bytecode)
 
 	assert.Equal(t, 16, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestDupInstruction(t *testing.T) {
+	input := `push 42
+	dup`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	// Execute on VM
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	// Stack should have [42, 42]
+	assert.Equal(t, 42, st.Pop())
+	assert.Equal(t, 42, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestSwapInstruction(t *testing.T) {
+	input := `push 10
+  push 20
+  swap`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	// Execute on VM
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	// Stack should have [20, 10] (10 on top now)
+	assert.Equal(t, 10, st.Pop())
+	assert.Equal(t, 20, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestDropInstruction(t *testing.T) {
+	input := `push 10
+  push 20
+  push 30
+  drop`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	// Execute on VM
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	// Stack should have [10, 20] (30 was dropped)
+	assert.Equal(t, 20, st.Pop())
+	assert.Equal(t, 10, st.Pop())
 	assert.True(t, st.IsEmpty())
 }

@@ -33,7 +33,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 
 		switch opCode {
 
-		case stack.PUSH:
+		case stack.PSH:
 			ip++
 			bc := byteCode[ip]
 			vm.stack.Push(bc)
@@ -64,6 +64,15 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			if vm.traceEnabled {
 				fmt.Printf("[%d] MUL        → %s\n", ip, vm.stack.String())
 			}
+			ip++
+		case stack.DUP:
+			vm.stack.Dup()
+			ip++
+		case stack.SWP:
+			vm.stack.Swap()
+			ip++
+		case stack.DRP:
+			vm.stack.Drop()
 			ip++
 		}
 	}

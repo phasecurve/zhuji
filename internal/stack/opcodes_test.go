@@ -14,7 +14,7 @@ func TestOpCodesAreDefined(t *testing.T) {
 	}{
 		{
 			name:     "OpCodePushIs_0",
-			opCode:   PUSH,
+			opCode:   PSH,
 			expected: 0,
 		}, {
 			name:     "OpCodeAddIs_1",

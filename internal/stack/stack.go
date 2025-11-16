@@ -33,6 +33,21 @@ func (s *Stack) Peek() int {
 	return s.stack[len(s.stack)-1]
 }
 
+func (s *Stack) Swap() {
+	first := s.Pop()
+	second := s.Pop()
+	s.Push(first)
+	s.Push(second)
+}
+
+func (s *Stack) Drop() {
+	s.Pop()
+}
+
+func (s *Stack) Dup() {
+	s.Push(s.Peek())
+}
+
 func (s *Stack) Size() int {
 	return len(s.stack)
 }

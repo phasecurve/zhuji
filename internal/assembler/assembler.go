@@ -23,7 +23,7 @@ func Assemble(input string) ([]int, error) {
 		for inst := range assemblerSplit {
 			switch inst {
 			case "push":
-				byteCode = append(byteCode, int(stack.PUSH))
+				byteCode = append(byteCode, int(stack.PSH))
 			case "add":
 				byteCode = append(byteCode, int(stack.ADD))
 			case "sub":
@@ -32,10 +32,15 @@ func Assemble(input string) ([]int, error) {
 				byteCode = append(byteCode, int(stack.DIV))
 			case "mul":
 				byteCode = append(byteCode, int(stack.MUL))
+			case "dup":
+				byteCode = append(byteCode, int(stack.DUP))
+			case "swap":
+				byteCode = append(byteCode, int(stack.SWP))
+			case "drop":
+				byteCode = append(byteCode, int(stack.DRP))
 			default:
-				var val int
-				var err error
-				if val, err = strconv.Atoi(inst); err != nil {
+				val, err := strconv.Atoi(inst)
+				if err != nil {
 					return nil, err
 				}
 				byteCode = append(byteCode, val)
