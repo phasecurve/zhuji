@@ -95,3 +95,15 @@ func TestExecuteComplexExpression(t *testing.T) {
 	assert.True(t, st.IsEmpty())
 }
 
+func TestVMTraceMode(t *testing.T) {
+	st := stack.NewStack()
+	vm := NewVM(st)
+	vm.EnableTrace() // Enable trace mode
+
+	bytecode := []int{int(stack.PUSH), 10, int(stack.PUSH), 20, int(stack.ADD)}
+
+	// In trace mode, VM prints to stdout (we won't assert output, just verify it doesn't crash)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 30, st.Pop())
+}

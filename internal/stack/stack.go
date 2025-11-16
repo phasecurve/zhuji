@@ -1,6 +1,10 @@
 // Package stack ...
 package stack
 
+import (
+	"fmt"
+)
+
 type Stack struct {
 	stack []int
 }
@@ -27,4 +31,29 @@ func (s *Stack) Pop() int {
 
 func (s *Stack) Peek() int {
 	return s.stack[len(s.stack)-1]
+}
+
+func (s *Stack) Size() int {
+	return len(s.stack)
+}
+
+func (s *Stack) String() string {
+	if len(s.stack) == 0 {
+		return "Stack: []"
+	}
+	if len(s.stack) == 1 {
+		return fmt.Sprintf("Stack: [%d]", s.stack[0])
+	}
+
+	top := s.Peek()
+	stackStr := "Stack: ["
+	for i := 0; i < len(s.stack); {
+		if i+1 == len(s.stack) {
+			stackStr = fmt.Sprintf("%s%d]", stackStr, s.stack[i])
+		} else {
+			stackStr = fmt.Sprintf("%s%d, ", stackStr, s.stack[i])
+		}
+		i++
+	}
+	return fmt.Sprintf("%s (top: %d)", stackStr, top)
 }

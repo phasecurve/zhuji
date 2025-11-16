@@ -42,3 +42,32 @@ func TestStackCanPeek(t *testing.T) {
 	assert.Equal(t, 5025, s.Peek(), "peeked value should be 5025")
 	assert.Equal(t, 5025, s.Pop(), "popped value should be 5025")
 }
+
+func TestStackSize(t *testing.T) {
+	s := NewStack()
+	assert.Equal(t, 0, s.Size())
+
+	s.Push(10)
+	assert.Equal(t, 1, s.Size())
+
+	s.Push(20)
+	assert.Equal(t, 2, s.Size())
+
+	s.Pop()
+	assert.Equal(t, 1, s.Size())
+
+	s.Pop()
+	assert.Equal(t, 0, s.Size())
+}
+
+func TestStackString(t *testing.T) {
+	s := NewStack()
+	assert.Equal(t, "Stack: []", s.String())
+
+	s.Push(10)
+	assert.Equal(t, "Stack: [10]", s.String())
+
+	s.Push(20)
+	s.Push(30)
+	assert.Equal(t, "Stack: [10, 20, 30] (top: 30)", s.String())
+}
