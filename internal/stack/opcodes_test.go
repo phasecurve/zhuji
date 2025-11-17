@@ -32,6 +32,42 @@ func TestOpCodesAreDefined(t *testing.T) {
 			name:     "OpCodeDivIs_4",
 			opCode:   DIV,
 			expected: 4,
+		}, {
+			name:     "OpCodeDupIs_5",
+			opCode:   DUP,
+			expected: 5,
+		}, {
+			name:     "OpCodeSwpIs_6",
+			opCode:   SWP,
+			expected: 6,
+		}, {
+			name:     "OpCodeDrpIs_7",
+			opCode:   DRP,
+			expected: 7,
+		}, {
+			name:     "OpCodeEqIs_8",
+			opCode:   EQ,
+			expected: 8,
+		}, {
+			name:     "OpCodeLtIs_9",
+			opCode:   LT,
+			expected: 9,
+		}, {
+			name:     "OpCodeLteIs_10",
+			opCode:   LTE,
+			expected: 10,
+		}, {
+			name:     "OpCodeGtIs_11",
+			opCode:   GT,
+			expected: 11,
+		}, {
+			name:     "OpCodeGteIs_12",
+			opCode:   GTE,
+			expected: 12,
+		}, {
+			name:     "OpCodeJmpIs_13",
+			opCode:   JMP,
+			expected: 13,
 		},
 	}
 

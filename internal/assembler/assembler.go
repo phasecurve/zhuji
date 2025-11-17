@@ -24,6 +24,8 @@ func Assemble(input string) ([]int, error) {
 			switch inst {
 			case "push":
 				byteCode = append(byteCode, int(stack.PSH))
+			case "jmp":
+				byteCode = append(byteCode, int(stack.JMP))
 			case "add":
 				byteCode = append(byteCode, int(stack.ADD))
 			case "sub":

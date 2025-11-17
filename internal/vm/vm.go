@@ -41,6 +41,35 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] PUSH %d    → %s\n", ip, bc, vm.stack.String())
 			}
 			ip++
+		case stack.JMP:
+			ip++
+			bc := byteCode[ip]
+			if vm.traceEnabled {
+				fmt.Printf("[%d] JMP %d    → %s\n", ip, bc, vm.stack.String())
+			}
+			ip = bc
+		case stack.JZ:
+			ip++
+			bc := byteCode[ip]
+			if vm.traceEnabled {
+				fmt.Printf("[%d] JZ %d    → %s\n", ip, bc, vm.stack.String())
+			}
+			if vm.stack.Pop() == 0 {
+				ip = bc
+			} else {
+				ip++
+			}
+		case stack.JNZ:
+			ip++
+			bc := byteCode[ip]
+			if vm.traceEnabled {
+				fmt.Printf("[%d] JNZ %d    → %s\n", ip, bc, vm.stack.String())
+			}
+			if vm.stack.Pop() != 0 {
+				ip = bc
+			} else {
+				ip++
+			}
 		case stack.ADD:
 			vm.executeBinaryOp(func(a, b int) int { return a + b })
 			if vm.traceEnabled {

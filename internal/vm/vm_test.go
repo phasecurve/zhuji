@@ -203,3 +203,91 @@ func TestGreaterThanFalse(t *testing.T) {
 	assert.Equal(t, 0, s.Pop())
 	assert.True(t, s.IsEmpty())
 }
+
+func TestUnconditionalJump(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 1,
+		int(stack.JMP), 6, // Jump to position 6 (skips next PUSH)
+		int(stack.PSH), 99, // This gets skipped
+		int(stack.PSH), 2, // Position 6: execution resumes here
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, s.Pop())
+	assert.Equal(t, 1, s.Pop())
+	assert.True(t, s.IsEmpty()) // 99 never pushed
+}
+
+func TestJumpIfZeroWhenZero(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 0, // Push 0 (false)
+		int(stack.JZ), 6, // Jump to position 6 because top is 0
+		int(stack.PSH), 99, // This gets skipped
+		int(stack.PSH), 2, // Position 6: execution resumes here
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, s.Pop())
+	assert.True(t, s.IsEmpty()) // 99 never pushed, 0 was popped by jz
+}
+
+func TestJumpIfZeroWhenNotZero(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 1, // Push 1 (true/non-zero)
+		int(stack.JZ), 6, // Don't jump because top is not 0
+		int(stack.PSH), 99, // This executes
+		int(stack.PSH), 2, // Position 6: this also executes
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, s.Pop())
+	assert.Equal(t, 99, s.Pop())
+	assert.True(t, s.IsEmpty()) // 1 was popped by jz
+}
+
+func TestJumpIfNotZeroWhenNotZero(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 1, // Push 1 (non-zero)
+		int(stack.JNZ), 6, // Jump to position 6 because top is not 0
+		int(stack.PSH), 99, // This gets skipped
+		int(stack.PSH), 2, // Position 6: execution resumes here
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, s.Pop())
+	assert.True(t, s.IsEmpty()) // 99 never pushed, 1 was popped by jnz
+}
+
+func TestJumpIfNotZeroWhenZero(t *testing.T) {
+	s := stack.NewStack()
+	vm := NewVM(s)
+
+	bytecode := ByteCode{
+		int(stack.PSH), 0, // Push 0 (zero)
+		int(stack.JNZ), 6, // Don't jump because top is 0
+		int(stack.PSH), 99, // This executes
+		int(stack.PSH), 2, // Position 6: this also executes
+	}
+
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, s.Pop())
+	assert.Equal(t, 99, s.Pop())
+	assert.True(t, s.IsEmpty()) // 0 was popped by jnz
+}

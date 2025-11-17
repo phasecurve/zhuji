@@ -236,3 +236,22 @@ func TestAssembleAndExecuteEQ(t *testing.T) {
 	assert.Equal(t, 1, st.Pop())
 	assert.True(t, st.IsEmpty())
 }
+
+func TestAssembleJump(t *testing.T) {
+	input := `push 1
+      jmp 6
+      push 99
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	expected := []int{
+		int(stack.PSH), 1,
+		int(stack.JMP), 6,
+		int(stack.PSH), 99,
+		int(stack.PSH), 2,
+	}
+
+	assert.Equal(t, expected, bytecode)
+}

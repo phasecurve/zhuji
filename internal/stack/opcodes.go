@@ -16,4 +16,7 @@ const (
 	LTE
 	GT
 	GTE
+	JMP
+	JZ
+	JNZ
 )
