@@ -2,30 +2,124 @@
 package assembler
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/phasecurve/zhuji/internal/stack"
 )
 
-func Assemble(input string) ([]int, error) {
+type Assembler struct {
+	traceEnabled bool
+}
+
+func NewAssembler(traceEnable bool) Assembler {
+	assembler := Assembler{
+		traceEnabled: traceEnable,
+	}
+	return assembler
+}
+
+func (a *Assembler) buildSymbolTable(lines []string) map[string]int {
+	symbolTable := make(map[string]int)
+	pos := 0
+	for _, inst := range lines {
+		inst = strings.TrimSpace(inst)
+		token := strings.Split(inst, " ")
+		if token[0] == "push" || token[0] == "jmp" {
+			pos += 2
+		} else if jumpVal, found := strings.CutSuffix(inst, ":"); found {
+			if _, err := strconv.Atoi(jumpVal); err != nil {
+				if a.traceEnabled {
+					fmt.Printf("[buildSymbolTable:34] \n\ttoken: %v\n\tjumpVal: %v\n", token, jumpVal)
+				}
+				symbolTable[jumpVal] = pos
+			}
+		} else {
+			pos++
+		}
+	}
+	if a.traceEnabled {
+		fmt.Printf("[buildSymbolTable:43] %v\n", symbolTable)
+	}
+	return symbolTable
+}
+
+func stripComment(line string) string {
+	commentStart := strings.Index(line, "#")
+	if commentStart == -1 {
+		commentStart = len(line)
+	}
+	assemblerSplit := strings.Fields(line[:commentStart])
+
+	return strings.Join(assemblerSplit, " ")
+}
+
+func (a *Assembler) removeComments(input string) string {
+	lines := strings.Split(input, "\n")
+	linesNoComments := strings.Builder{}
+	for _, line := range lines {
+		linesNoComments.WriteString(fmt.Sprintf("%s\n", stripComment(line)))
+	}
+	result := linesNoComments.String()
+	if a.traceEnabled {
+		fmt.Printf("[removeComments:66] %s\n", result)
+	}
+	return result
+}
+
+func SplitRemoveEmpty(value, sep string) []string {
+	parts := strings.Split(value, sep)
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if strings.TrimSpace(p) != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+func (a *Assembler) Assemble(input string) ([]int, error) {
 	byteCode := []int{}
 
-	lines := strings.SplitSeq(input, "\n")
+	lines := SplitRemoveEmpty(a.removeComments(input), "\n")
 
-	for line := range lines {
-		commentStart := strings.Index(line, "#")
-		if commentStart == -1 {
-			commentStart = len(line)
+	if a.traceEnabled {
+		for i, line := range lines {
+			fmt.Printf("[Assemble:89] %d %s\n", i, line)
 		}
-		assemblerSplit := strings.FieldsSeq(line[:commentStart])
+	}
 
-		for inst := range assemblerSplit {
+	labels := a.buildSymbolTable(lines)
+
+	for _, line := range lines {
+
+		op := SplitRemoveEmpty(line, " ")
+		for i, inst := range op {
+			if a.traceEnabled {
+				fmt.Printf("[Assemble:101] %d:%v\n", i, inst)
+				fmt.Printf("[Assemble:102] bytecode: %+v\n", byteCode)
+			}
 			switch inst {
 			case "push":
 				byteCode = append(byteCode, int(stack.PSH))
 			case "jmp":
+				// check for label and switch using the label variable
 				byteCode = append(byteCode, int(stack.JMP))
+				label := op[i+1]
+				if _, err := strconv.Atoi(label); err != nil {
+					byteCode = append(byteCode, int(labels[label]))
+					if a.traceEnabled {
+						fmt.Printf("[Assemble:115] \n\tbc:%v\n\tval:%v\n\tlabel:%s\n\tlabels:%+v\n\terr: %v\n", byteCode, labels[label], label, labels, err)
+					}
+				}
+				if a.traceEnabled {
+					fmt.Printf("[Assemble:119] bc(%v):val/label(%v)\n", byteCode, label)
+				}
+			case "jz":
+				byteCode = append(byteCode, int(stack.JZ))
+			case "jnz":
+				byteCode = append(byteCode, int(stack.JNZ))
 			case "add":
 				byteCode = append(byteCode, int(stack.ADD))
 			case "sub":
@@ -51,8 +145,21 @@ func Assemble(input string) ([]int, error) {
 			case "gte":
 				byteCode = append(byteCode, int(stack.GTE))
 			default:
+				if a.traceEnabled {
+					fmt.Printf("[Assemble:152] token: %v\n", inst)
+				}
+				if strings.HasSuffix(inst, ":") {
+					// Skip label definitions - they're already in the symbol table
+					continue
+				}
 				val, err := strconv.Atoi(inst)
 				if err != nil {
+					if a.traceEnabled {
+						fmt.Printf("[Assemble:161] %v\n", err)
+					}
+					if _, found := labels[inst]; found {
+						continue
+					}
 					return nil, err
 				}
 				byteCode = append(byteCode, val)

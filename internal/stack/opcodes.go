@@ -19,4 +19,5 @@ const (
 	JMP
 	JZ
 	JNZ
+	SKP
 )

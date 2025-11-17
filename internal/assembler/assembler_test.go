@@ -8,6 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var a = &Assembler{
+	traceEnabled: true,
+}
+var Assemble = a.Assemble
+
 func TestAssembleSinglePush(t *testing.T) {
 	input := "push 42"
 	bytecode, err := Assemble(input)
@@ -249,6 +254,26 @@ func TestAssembleJump(t *testing.T) {
 	expected := []int{
 		int(stack.PSH), 1,
 		int(stack.JMP), 6,
+		int(stack.PSH), 99,
+		int(stack.PSH), 2,
+	}
+
+	assert.Equal(t, expected, bytecode)
+}
+
+func TestAssembleLabelWithJump(t *testing.T) {
+	input := `push 1
+      jmp skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	expected := []int{
+		int(stack.PSH), 1,
+		int(stack.JMP), 6, // skip is at position 6
 		int(stack.PSH), 99,
 		int(stack.PSH), 2,
 	}
