@@ -19,7 +19,7 @@ const (
 	JMP
 	JZ
 	JNZ
-	STREG
-	LDREG
-	PKREG
+	ADDI
+	LW
+	SW
 )

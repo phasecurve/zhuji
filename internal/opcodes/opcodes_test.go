@@ -77,16 +77,16 @@ func TestOpCodesAreDefined(t *testing.T) {
 			opCode:   JNZ,
 			expected: 15,
 		}, {
-			name:     "OpCodeStregIS_16",
-			opCode:   STREG,
+			name:     "OpCodeAddiIs_16",
+			opCode:   ADDI,
 			expected: 16,
 		}, {
-			name:     "OpCodeLdregIs_17",
-			opCode:   LDREG,
+			name:     "OpCodeLwIs_17",
+			opCode:   LW,
 			expected: 17,
 		}, {
-			name:     "OpCodePkregIs_18",
-			opCode:   PKREG,
+			name:     "OpCodeSwIs_18",
+			opCode:   SW,
 			expected: 18,
 		},
 	}

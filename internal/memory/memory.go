@@ -5,8 +5,8 @@ type Memory struct {
 	data []byte
 }
 
-func NewMemory(size int) Memory {
-	return Memory{
+func NewMemory(size int) *Memory {
+	return &Memory{
 		data: make([]byte, size),
 	}
 }

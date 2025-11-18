@@ -2,7 +2,7 @@
 package registers
 
 type Registers struct {
-	values [2]int32
+	values [32]int32
 }
 
 func NewRegisters() *Registers {

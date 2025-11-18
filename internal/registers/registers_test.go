@@ -23,7 +23,7 @@ func TestWriteToX1ThenReadIt(t *testing.T) {
 func TestAllRegistersInitialiseToZero(t *testing.T) {
 	r := NewRegisters()
 
-	for i := range 2 {
+	for i := range 32 {
 		assert.Equal(t, int32(0), r.Read(i))
 	}
 }
