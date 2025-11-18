@@ -4,6 +4,8 @@ package vm
 import (
 	"fmt"
 
+	"github.com/phasecurve/zhuji/internal/opcodes"
+	"github.com/phasecurve/zhuji/internal/registers"
 	"github.com/phasecurve/zhuji/internal/stack"
 )
 
@@ -11,12 +13,14 @@ type ByteCode []int
 
 type vm struct {
 	stack        *stack.Stack
+	registers    *registers.Registers
 	traceEnabled bool
 }
 
-func NewVM(stack *stack.Stack) *vm {
+func NewVM(stack *stack.Stack, registers *registers.Registers) *vm {
 	vm := &vm{
-		stack: stack,
+		stack:     stack,
+		registers: registers,
 	}
 	return vm
 }
@@ -29,11 +33,14 @@ func (vm *vm) executeBinaryOp(op func(int, int) int) {
 
 func (vm *vm) Execute(byteCode ByteCode) {
 	for ip := 0; ip < len(byteCode); {
-		opCode := stack.OpCode(byteCode[ip])
+		opCode := opcodes.OpCode(byteCode[ip])
 
+		if vm.traceEnabled {
+			fmt.Printf("[Execute:39] \n\tbyteCode: %v\n\topCode: %v\n\tip: %d", byteCode, opCode, ip)
+		}
 		switch opCode {
 
-		case stack.PSH:
+		case opcodes.PSH:
 			ip++
 			bc := byteCode[ip]
 			vm.stack.Push(bc)
@@ -41,14 +48,14 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] PUSH %d    → %s\n", ip, bc, vm.stack.String())
 			}
 			ip++
-		case stack.JMP:
+		case opcodes.JMP:
 			ip++
 			bc := byteCode[ip]
 			if vm.traceEnabled {
 				fmt.Printf("[%d] JMP %d    → %s\n", ip, bc, vm.stack.String())
 			}
 			ip = bc
-		case stack.JZ:
+		case opcodes.JZ:
 			ip++
 			bc := byteCode[ip]
 			if vm.traceEnabled {
@@ -59,7 +66,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			} else {
 				ip++
 			}
-		case stack.JNZ:
+		case opcodes.JNZ:
 			ip++
 			bc := byteCode[ip]
 			if vm.traceEnabled {
@@ -70,31 +77,31 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			} else {
 				ip++
 			}
-		case stack.ADD:
+		case opcodes.ADD:
 			vm.executeBinaryOp(func(a, b int) int { return a + b })
 			if vm.traceEnabled {
 				fmt.Printf("[%d] ADD        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.SUB:
+		case opcodes.SUB:
 			vm.executeBinaryOp(func(a, b int) int { return a - b })
 			if vm.traceEnabled {
 				fmt.Printf("[%d] SUB        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.DIV:
+		case opcodes.DIV:
 			vm.executeBinaryOp(func(a, b int) int { return a / b })
 			if vm.traceEnabled {
 				fmt.Printf("[%d] DIV        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.MUL:
+		case opcodes.MUL:
 			vm.executeBinaryOp(func(a, b int) int { return a * b })
 			if vm.traceEnabled {
 				fmt.Printf("[%d] MUL        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.EQ:
+		case opcodes.EQ:
 			vm.executeBinaryOp(func(a, b int) int {
 				if a == b {
 					return 1
@@ -105,7 +112,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] EQ        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.LT:
+		case opcodes.LT:
 			vm.executeBinaryOp(func(a, b int) int {
 				if a < b {
 					return 1
@@ -116,7 +123,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] LT        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.LTE:
+		case opcodes.LTE:
 			vm.executeBinaryOp(func(a, b int) int {
 				if a <= b {
 					return 1
@@ -127,7 +134,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] LTE        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.GT:
+		case opcodes.GT:
 			vm.executeBinaryOp(func(a, b int) int {
 				if a > b {
 					return 1
@@ -138,7 +145,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] GT        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.GTE:
+		case opcodes.GTE:
 			vm.executeBinaryOp(func(a, b int) int {
 				if a >= b {
 					return 1
@@ -149,24 +156,30 @@ func (vm *vm) Execute(byteCode ByteCode) {
 				fmt.Printf("[%d] GTE        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.DUP:
+		case opcodes.DUP:
 			vm.stack.Dup()
 			if vm.traceEnabled {
 				fmt.Printf("[%d] DUP        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.SWP:
+		case opcodes.SWP:
 			vm.stack.Swap()
 			if vm.traceEnabled {
 				fmt.Printf("[%d] SWP        → %s\n", ip, vm.stack.String())
 			}
 			ip++
-		case stack.DRP:
+		case opcodes.DRP:
 			vm.stack.Drop()
 			if vm.traceEnabled {
 				fmt.Printf("[%d] DRP        → %s\n", ip, vm.stack.String())
 			}
 			ip++
+		case opcodes.STREG:
+			top := vm.stack.Pop()
+			vm.registers.Write(1, int32(top))
+			if vm.traceEnabled {
+				fmt.Printf("[%d] STREG      → %s\n", ip, vm.stack.String())
+			}
 		}
 	}
 }

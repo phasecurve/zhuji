@@ -1,4 +1,4 @@
-package stack
+package opcodes
 
 type OpCode int
 
@@ -19,5 +19,7 @@ const (
 	JMP
 	JZ
 	JNZ
-	SKP
+	STREG
+	LDREG
+	PKREG
 )

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/phasecurve/zhuji/internal/stack"
+	"github.com/phasecurve/zhuji/internal/opcodes"
 )
 
 type Assembler struct {
@@ -116,37 +116,37 @@ func (a *Assembler) Assemble(input string) ([]int, error) {
 			}
 			switch inst {
 			case "push":
-				byteCode = append(byteCode, int(stack.PSH))
+				byteCode = append(byteCode, int(opcodes.PSH))
 			case "jmp":
-				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JMP), op[i+1], labels)
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(opcodes.JMP), op[i+1], labels)
 			case "jz":
-				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JZ), op[i+1], labels)
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(opcodes.JZ), op[i+1], labels)
 			case "jnz":
-				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JNZ), op[i+1], labels)
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(opcodes.JNZ), op[i+1], labels)
 			case "add":
-				byteCode = append(byteCode, int(stack.ADD))
+				byteCode = append(byteCode, int(opcodes.ADD))
 			case "sub":
-				byteCode = append(byteCode, int(stack.SUB))
+				byteCode = append(byteCode, int(opcodes.SUB))
 			case "div":
-				byteCode = append(byteCode, int(stack.DIV))
+				byteCode = append(byteCode, int(opcodes.DIV))
 			case "mul":
-				byteCode = append(byteCode, int(stack.MUL))
+				byteCode = append(byteCode, int(opcodes.MUL))
 			case "dup":
-				byteCode = append(byteCode, int(stack.DUP))
+				byteCode = append(byteCode, int(opcodes.DUP))
 			case "swap":
-				byteCode = append(byteCode, int(stack.SWP))
+				byteCode = append(byteCode, int(opcodes.SWP))
 			case "drop":
-				byteCode = append(byteCode, int(stack.DRP))
+				byteCode = append(byteCode, int(opcodes.DRP))
 			case "eq":
-				byteCode = append(byteCode, int(stack.EQ))
+				byteCode = append(byteCode, int(opcodes.EQ))
 			case "lt":
-				byteCode = append(byteCode, int(stack.LT))
+				byteCode = append(byteCode, int(opcodes.LT))
 			case "lte":
-				byteCode = append(byteCode, int(stack.LTE))
+				byteCode = append(byteCode, int(opcodes.LTE))
 			case "gt":
-				byteCode = append(byteCode, int(stack.GT))
+				byteCode = append(byteCode, int(opcodes.GT))
 			case "gte":
-				byteCode = append(byteCode, int(stack.GTE))
+				byteCode = append(byteCode, int(opcodes.GTE))
 			default:
 				if a.traceEnabled {
 					fmt.Printf("[Assemble:152] token: %v\n", inst)

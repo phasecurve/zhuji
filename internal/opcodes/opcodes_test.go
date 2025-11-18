@@ -1,4 +1,4 @@
-package stack
+package opcodes
 
 import (
 	"testing"
@@ -68,6 +68,26 @@ func TestOpCodesAreDefined(t *testing.T) {
 			name:     "OpCodeJmpIs_13",
 			opCode:   JMP,
 			expected: 13,
+		}, {
+			name:     "OpCodeJzIs_14",
+			opCode:   JZ,
+			expected: 14,
+		}, {
+			name:     "OpCodeJnzIs_15",
+			opCode:   JNZ,
+			expected: 15,
+		}, {
+			name:     "OpCodeStregIS_16",
+			opCode:   STREG,
+			expected: 16,
+		}, {
+			name:     "OpCodeLdregIs_17",
+			opCode:   LDREG,
+			expected: 17,
+		}, {
+			name:     "OpCodePkregIs_18",
+			opCode:   PKREG,
+			expected: 18,
 		},
 	}
 

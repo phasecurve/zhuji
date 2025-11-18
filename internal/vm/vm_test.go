@@ -3,14 +3,17 @@ package vm
 import (
 	"testing"
 
+	"github.com/phasecurve/zhuji/internal/opcodes"
+	"github.com/phasecurve/zhuji/internal/registers"
 	"github.com/phasecurve/zhuji/internal/stack"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestExecuteSinglePushInstruction(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
-	pushOp := []int{int(stack.PSH), 42}
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
+	pushOp := []int{int(opcodes.PSH), 42}
 
 	vm.Execute(pushOp)
 
@@ -19,8 +22,9 @@ func TestExecuteSinglePushInstruction(t *testing.T) {
 
 func TestExecuteMultiplePushInstructions(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
-	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20}
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
+	bytecode := []int{int(opcodes.PSH), 10, int(opcodes.PSH), 20}
 
 	vm.Execute(bytecode)
 
@@ -30,9 +34,10 @@ func TestExecuteMultiplePushInstructions(t *testing.T) {
 
 func TestExecuteAddInstruction(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	// PSH 10, PSH 20, ADD
-	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20, int(stack.ADD)}
+	bytecode := []int{int(opcodes.PSH), 10, int(opcodes.PSH), 20, int(opcodes.ADD)}
 
 	vm.Execute(bytecode)
 
@@ -42,9 +47,10 @@ func TestExecuteAddInstruction(t *testing.T) {
 
 func TestExecuteSubInstruction(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	// PSH 20, PSH 10, SUB → (20 - 10 = 10)
-	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 10, int(stack.SUB)}
+	bytecode := []int{int(opcodes.PSH), 20, int(opcodes.PSH), 10, int(opcodes.SUB)}
 
 	vm.Execute(bytecode)
 
@@ -54,9 +60,10 @@ func TestExecuteSubInstruction(t *testing.T) {
 
 func TestExecuteDivInstruction(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	// PSH 20, PSH 4, DIV → (20 / 4 = 5)
-	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 4, int(stack.DIV)}
+	bytecode := []int{int(opcodes.PSH), 20, int(opcodes.PSH), 4, int(opcodes.DIV)}
 
 	vm.Execute(bytecode)
 
@@ -66,9 +73,10 @@ func TestExecuteDivInstruction(t *testing.T) {
 
 func TestExecuteMulInstruction(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	// PSH 20, PSH 4, MUL → (20 * 4 = 80)
-	bytecode := []int{int(stack.PSH), 20, int(stack.PSH), 4, int(stack.MUL)}
+	bytecode := []int{int(opcodes.PSH), 20, int(opcodes.PSH), 4, int(opcodes.MUL)}
 
 	vm.Execute(bytecode)
 
@@ -78,15 +86,16 @@ func TestExecuteMulInstruction(t *testing.T) {
 
 func TestExecuteComplexExpression(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	// (5 + 3) * 2 = 16
 	// RPN: 5 3 + 2 *
 	bytecode := []int{
-		int(stack.PSH), 5,
-		int(stack.PSH), 3,
-		int(stack.ADD),
-		int(stack.PSH), 2,
-		int(stack.MUL),
+		int(opcodes.PSH), 5,
+		int(opcodes.PSH), 3,
+		int(opcodes.ADD),
+		int(opcodes.PSH), 2,
+		int(opcodes.MUL),
 	}
 
 	vm.Execute(bytecode)
@@ -97,10 +106,11 @@ func TestExecuteComplexExpression(t *testing.T) {
 
 func TestVMTraceMode(t *testing.T) {
 	st := stack.NewStack()
-	vm := NewVM(st)
+	rs := registers.NewRegisters()
+	vm := NewVM(st, rs)
 	vm.EnableTrace() // Enable trace mode
 
-	bytecode := []int{int(stack.PSH), 10, int(stack.PSH), 20, int(stack.ADD)}
+	bytecode := []int{int(opcodes.PSH), 10, int(opcodes.PSH), 20, int(opcodes.ADD)}
 
 	// In trace mode, VM prints to stdout (we won't assert output, just verify it doesn't crash)
 	vm.Execute(bytecode)
@@ -110,12 +120,13 @@ func TestVMTraceMode(t *testing.T) {
 
 func TestEqualityTrue(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 5,
-		int(stack.PSH), 5,
-		int(stack.EQ),
+		int(opcodes.PSH), 5,
+		int(opcodes.PSH), 5,
+		int(opcodes.EQ),
 	}
 
 	vm.Execute(bytecode)
@@ -126,12 +137,13 @@ func TestEqualityTrue(t *testing.T) {
 
 func TestEqualityFalse(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 5,
-		int(stack.PSH), 3,
-		int(stack.EQ),
+		int(opcodes.PSH), 5,
+		int(opcodes.PSH), 3,
+		int(opcodes.EQ),
 	}
 
 	vm.Execute(bytecode)
@@ -142,12 +154,13 @@ func TestEqualityFalse(t *testing.T) {
 
 func TestLessThanTrue(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 3,
-		int(stack.PSH), 5,
-		int(stack.LT),
+		int(opcodes.PSH), 3,
+		int(opcodes.PSH), 5,
+		int(opcodes.LT),
 	}
 
 	vm.Execute(bytecode)
@@ -158,12 +171,13 @@ func TestLessThanTrue(t *testing.T) {
 
 func TestLessThanFalse(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 5,
-		int(stack.PSH), 3,
-		int(stack.LT),
+		int(opcodes.PSH), 5,
+		int(opcodes.PSH), 3,
+		int(opcodes.LT),
 	}
 
 	vm.Execute(bytecode)
@@ -174,12 +188,13 @@ func TestLessThanFalse(t *testing.T) {
 
 func TestGreaterThanTrue(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 5,
-		int(stack.PSH), 3,
-		int(stack.GT),
+		int(opcodes.PSH), 5,
+		int(opcodes.PSH), 3,
+		int(opcodes.GT),
 	}
 
 	vm.Execute(bytecode)
@@ -190,12 +205,13 @@ func TestGreaterThanTrue(t *testing.T) {
 
 func TestGreaterThanFalse(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 3,
-		int(stack.PSH), 5,
-		int(stack.GT),
+		int(opcodes.PSH), 3,
+		int(opcodes.PSH), 5,
+		int(opcodes.GT),
 	}
 
 	vm.Execute(bytecode)
@@ -206,13 +222,14 @@ func TestGreaterThanFalse(t *testing.T) {
 
 func TestUnconditionalJump(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 1,
-		int(stack.JMP), 6, // Jump to position 6 (skips next PUSH)
-		int(stack.PSH), 99, // This gets skipped
-		int(stack.PSH), 2, // Position 6: execution resumes here
+		int(opcodes.PSH), 1,
+		int(opcodes.JMP), 6, // Jump to position 6 (skips next PUSH)
+		int(opcodes.PSH), 99, // This gets skipped
+		int(opcodes.PSH), 2, // Position 6: execution resumes here
 	}
 
 	vm.Execute(bytecode)
@@ -224,13 +241,14 @@ func TestUnconditionalJump(t *testing.T) {
 
 func TestJumpIfZeroWhenZero(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 0, // Push 0 (false)
-		int(stack.JZ), 6, // Jump to position 6 because top is 0
-		int(stack.PSH), 99, // This gets skipped
-		int(stack.PSH), 2, // Position 6: execution resumes here
+		int(opcodes.PSH), 0, // Push 0 (false)
+		int(opcodes.JZ), 6, // Jump to position 6 because top is 0
+		int(opcodes.PSH), 99, // This gets skipped
+		int(opcodes.PSH), 2, // Position 6: execution resumes here
 	}
 
 	vm.Execute(bytecode)
@@ -241,13 +259,14 @@ func TestJumpIfZeroWhenZero(t *testing.T) {
 
 func TestJumpIfZeroWhenNotZero(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 1, // Push 1 (true/non-zero)
-		int(stack.JZ), 6, // Don't jump because top is not 0
-		int(stack.PSH), 99, // This executes
-		int(stack.PSH), 2, // Position 6: this also executes
+		int(opcodes.PSH), 1, // Push 1 (true/non-zero)
+		int(opcodes.JZ), 6, // Don't jump because top is not 0
+		int(opcodes.PSH), 99, // This executes
+		int(opcodes.PSH), 2, // Position 6: this also executes
 	}
 
 	vm.Execute(bytecode)
@@ -259,13 +278,14 @@ func TestJumpIfZeroWhenNotZero(t *testing.T) {
 
 func TestJumpIfNotZeroWhenNotZero(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 1, // Push 1 (non-zero)
-		int(stack.JNZ), 6, // Jump to position 6 because top is not 0
-		int(stack.PSH), 99, // This gets skipped
-		int(stack.PSH), 2, // Position 6: execution resumes here
+		int(opcodes.PSH), 1, // Push 1 (non-zero)
+		int(opcodes.JNZ), 6, // Jump to position 6 because top is not 0
+		int(opcodes.PSH), 99, // This gets skipped
+		int(opcodes.PSH), 2, // Position 6: execution resumes here
 	}
 
 	vm.Execute(bytecode)
@@ -276,13 +296,14 @@ func TestJumpIfNotZeroWhenNotZero(t *testing.T) {
 
 func TestJumpIfNotZeroWhenZero(t *testing.T) {
 	s := stack.NewStack()
-	vm := NewVM(s)
+	rs := registers.NewRegisters()
+	vm := NewVM(s, rs)
 
 	bytecode := ByteCode{
-		int(stack.PSH), 0, // Push 0 (zero)
-		int(stack.JNZ), 6, // Don't jump because top is 0
-		int(stack.PSH), 99, // This executes
-		int(stack.PSH), 2, // Position 6: this also executes
+		int(opcodes.PSH), 0, // Push 0 (zero)
+		int(opcodes.JNZ), 6, // Don't jump because top is 0
+		int(opcodes.PSH), 99, // This executes
+		int(opcodes.PSH), 2, // Position 6: this also executes
 	}
 
 	vm.Execute(bytecode)
