@@ -9,7 +9,7 @@ import (
 )
 
 var a = &Assembler{
-	traceEnabled: true,
+	traceEnabled: false,
 }
 var Assemble = a.Assemble
 
@@ -279,4 +279,171 @@ func TestAssembleLabelWithJump(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, bytecode)
+}
+
+func TestAssembleLabelWithJumpIfZero(t *testing.T) {
+	input := `push 0
+      jz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	expected := []int{
+		int(stack.PSH), 0,
+		int(stack.JZ), 6, // jump because top 0 skip is at position 6
+		int(stack.PSH), 99,
+		int(stack.PSH), 2,
+	}
+
+	assert.Equal(t, expected, bytecode)
+}
+
+func TestAssembleLabelWithJumpIfNotZero(t *testing.T) {
+	input := `push 1
+      jnz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	expected := []int{
+		int(stack.PSH), 1,
+		int(stack.JNZ), 6, // jump because top 0 skip is at position 6
+		int(stack.PSH), 99,
+		int(stack.PSH), 2,
+	}
+
+	assert.Equal(t, expected, bytecode)
+}
+
+func TestExecuteJumpIfZeroWithLabelWhenZero(t *testing.T) {
+	input := `push 0
+      jz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestExecuteJumpIfZeroWithLabelWhenNotZero(t *testing.T) {
+	input := `push 1
+      jz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, st.Pop())
+	assert.Equal(t, 99, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestExecuteJumpIfNotZeroWithLabelWhenNotZero(t *testing.T) {
+	input := `push 1
+      jnz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestExecuteJumpIfNotZeroWithLabelWhenZero(t *testing.T) {
+	input := `push 0
+      jnz skip
+      push 99
+  skip:
+      push 2`
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 2, st.Pop())
+	assert.Equal(t, 99, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestProgramCountToTen(t *testing.T) {
+	input := `push 0
+  loop:
+      push 1
+      add
+      dup
+      push 10
+      gt
+      jnz done
+      jmp loop
+  done:
+      `
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 11, st.Pop())
+	assert.True(t, st.IsEmpty())
+}
+
+func TestProgramSumToN(t *testing.T) {
+	input := `push 0
+      push 0
+  loop:
+      push 1
+      add
+      swap
+      dup
+      add
+      swap
+      dup
+      push 5
+      gt
+      jz loop
+      swap
+      drop
+      `
+
+	bytecode, err := Assemble(input)
+	assert.NoError(t, err)
+
+	st := stack.NewStack()
+	vm := vm.NewVM(st)
+	vm.Execute(bytecode)
+
+	assert.Equal(t, 15, st.Pop())
+	assert.True(t, st.IsEmpty())
 }

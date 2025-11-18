@@ -26,7 +26,7 @@ func (a *Assembler) buildSymbolTable(lines []string) map[string]int {
 	for _, inst := range lines {
 		inst = strings.TrimSpace(inst)
 		token := strings.Split(inst, " ")
-		if token[0] == "push" || token[0] == "jmp" {
+		if token[0] == "push" || token[0] == "jmp" || token[0] == "jz" || token[0] == "jnz" {
 			pos += 2
 		} else if jumpVal, found := strings.CutSuffix(inst, ":"); found {
 			if _, err := strconv.Atoi(jumpVal); err != nil {
@@ -78,6 +78,20 @@ func SplitRemoveEmpty(value, sep string) []string {
 	}
 	return out
 }
+func (a *Assembler) resolveJumpLabelsIfPresent(byteCode []int, opCode int, op string, labels map[string]int) []int {
+	byteCode = append(byteCode, opCode)
+	label := op
+	if _, err := strconv.Atoi(label); err != nil {
+		byteCode = append(byteCode, int(labels[label]))
+		if a.traceEnabled {
+			fmt.Printf("[Assemble:115] \n\tbc:%v\n\tval:%v\n\tlabel:%s\n\tlabels:%+v\n\terr: %v\n", byteCode, labels[label], label, labels, err)
+		}
+	}
+	if a.traceEnabled {
+		fmt.Printf("[Assemble:119] bc(%v):val/label(%v)\n", byteCode, label)
+	}
+	return byteCode
+}
 
 func (a *Assembler) Assemble(input string) ([]int, error) {
 	byteCode := []int{}
@@ -104,22 +118,11 @@ func (a *Assembler) Assemble(input string) ([]int, error) {
 			case "push":
 				byteCode = append(byteCode, int(stack.PSH))
 			case "jmp":
-				// check for label and switch using the label variable
-				byteCode = append(byteCode, int(stack.JMP))
-				label := op[i+1]
-				if _, err := strconv.Atoi(label); err != nil {
-					byteCode = append(byteCode, int(labels[label]))
-					if a.traceEnabled {
-						fmt.Printf("[Assemble:115] \n\tbc:%v\n\tval:%v\n\tlabel:%s\n\tlabels:%+v\n\terr: %v\n", byteCode, labels[label], label, labels, err)
-					}
-				}
-				if a.traceEnabled {
-					fmt.Printf("[Assemble:119] bc(%v):val/label(%v)\n", byteCode, label)
-				}
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JMP), op[i+1], labels)
 			case "jz":
-				byteCode = append(byteCode, int(stack.JZ))
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JZ), op[i+1], labels)
 			case "jnz":
-				byteCode = append(byteCode, int(stack.JNZ))
+				byteCode = a.resolveJumpLabelsIfPresent(byteCode, int(stack.JNZ), op[i+1], labels)
 			case "add":
 				byteCode = append(byteCode, int(stack.ADD))
 			case "sub":

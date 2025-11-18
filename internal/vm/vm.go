@@ -151,12 +151,21 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			ip++
 		case stack.DUP:
 			vm.stack.Dup()
+			if vm.traceEnabled {
+				fmt.Printf("[%d] DUP        → %s\n", ip, vm.stack.String())
+			}
 			ip++
 		case stack.SWP:
 			vm.stack.Swap()
+			if vm.traceEnabled {
+				fmt.Printf("[%d] SWP        → %s\n", ip, vm.stack.String())
+			}
 			ip++
 		case stack.DRP:
 			vm.stack.Drop()
+			if vm.traceEnabled {
+				fmt.Printf("[%d] DRP        → %s\n", ip, vm.stack.String())
+			}
 			ip++
 		}
 	}
