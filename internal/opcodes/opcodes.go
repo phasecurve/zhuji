@@ -12,7 +12,7 @@ const (
 	SWP
 	DRP
 	EQ
-	LT
+	BLT
 	LTE
 	GT
 	GTE

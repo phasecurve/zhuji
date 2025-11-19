@@ -50,7 +50,7 @@ func TestOpCodesAreDefined(t *testing.T) {
 			expected: 8,
 		}, {
 			name:     "OpCodeLtIs_9",
-			opCode:   LT,
+			opCode:   BLT,
 			expected: 9,
 		}, {
 			name:     "OpCodeLteIs_10",
