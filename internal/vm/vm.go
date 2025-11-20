@@ -66,7 +66,7 @@ func (vm *vm) execBranch(opCode opcodes.OpCode, byteCode []int, ip int, cond fun
 	target := byteCode[ip+3]
 	nextIP := ip + 4
 	if cond(rs1Val, rs2Val) {
-		nextIP = target
+		nextIP = ip + target
 	}
 	if vm.traceEnabled {
 		fmt.Printf("[%d] %s x%d, x%d, %d → ip = %d\n", ip, opToAssemby[opCode], byteCode[ip+1], byteCode[ip+2], target,

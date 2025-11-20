@@ -81,7 +81,7 @@ addi x2, x0, 1
 addi x3, x0, 6
 add x1, x1, x2
 addi x2, x2, 1
-blt x2, x3, 12`
+blt x2, x3, -8`
 
 	bytecode := asm.Assemble(program)
 
@@ -91,7 +91,7 @@ blt x2, x3, 12`
 		int(opcodes.ADDI), 3, 0, 6,
 		int(opcodes.ADD), 1, 1, 2,
 		int(opcodes.ADDI), 2, 2, 1,
-		int(opcodes.BLT), 2, 3, 12,
+		int(opcodes.BLT), 2, 3, -8,
 	}
 	assert.Equal(t, expected, bytecode)
 }

@@ -269,7 +269,7 @@ func TestBranchIfLessThanTaken(t *testing.T) {
 	bytecode := ByteCode{
 		int(opcodes.ADDI), 1, 0, 5,
 		int(opcodes.ADDI), 2, 0, 10,
-		int(opcodes.BLT), 1, 2, 16,
+		int(opcodes.BLT), 1, 2, 8,
 		int(opcodes.ADDI), 3, 0, 99,
 		int(opcodes.ADDI), 4, 0, 42,
 	}
@@ -328,7 +328,7 @@ func TestSumOneToFive(t *testing.T) {
 
 		int(opcodes.ADD), 1, 1, 2,
 		int(opcodes.ADDI), 2, 2, 1,
-		int(opcodes.BLT), 2, 3, 12,
+		int(opcodes.BLT), 2, 3, -8,
 	}
 
 	vm.Execute(bytecode)
@@ -345,7 +345,7 @@ func TestBranchIfEqualTaken(t *testing.T) {
 	bytecode := ByteCode{
 		int(opcodes.ADDI), 1, 0, 10,
 		int(opcodes.ADDI), 2, 0, 10,
-		int(opcodes.BEQ), 1, 2, 16,
+		int(opcodes.BEQ), 1, 2, 8,
 		int(opcodes.ADDI), 3, 0, 99,
 		int(opcodes.ADDI), 4, 0, 42,
 	}
@@ -366,7 +366,7 @@ func TestBranchIfNotEqualTaken(t *testing.T) {
 	bytecode := ByteCode{
 		int(opcodes.ADDI), 1, 0, 5,
 		int(opcodes.ADDI), 2, 0, 10,
-		int(opcodes.BNE), 1, 2, 16,
+		int(opcodes.BNE), 1, 2, 8,
 		int(opcodes.ADDI), 3, 0, 99,
 		int(opcodes.ADDI), 4, 0, 42,
 	}
@@ -387,7 +387,7 @@ func TestBranchIfGreaterOrEqualTaken(t *testing.T) {
 	bytecode := ByteCode{
 		int(opcodes.ADDI), 1, 0, 10,
 		int(opcodes.ADDI), 2, 0, 5,
-		int(opcodes.BGE), 1, 2, 16,
+		int(opcodes.BGE), 1, 2, 8,
 		int(opcodes.ADDI), 3, 0, 99,
 		int(opcodes.ADDI), 4, 0, 42,
 	}
@@ -774,12 +774,12 @@ func TestFibonacci(t *testing.T) {
 		int(opcodes.ADDI), 3, 0, 9,
 		int(opcodes.ADDI), 4, 0, 0,
 
-		int(opcodes.BGE), 4, 3, 40,
+		int(opcodes.BGE), 4, 3, 4,
 		int(opcodes.ADD), 5, 1, 2,
 		int(opcodes.ADD), 1, 2, 0,
 		int(opcodes.ADD), 2, 5, 0,
 		int(opcodes.ADDI), 4, 4, 1,
-		int(opcodes.BLT), 4, 3, 16,
+		int(opcodes.BLT), 4, 3, -20,
 	}
 
 	vm.Execute(bytecode)

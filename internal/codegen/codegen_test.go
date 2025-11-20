@@ -214,3 +214,19 @@ func TestCodegenEndToEndMul(t *testing.T) {
 	exitCode := cmd.ProcessState.ExitCode()
 	assert.Equal(t, 42, exitCode)
 }
+
+// func TestCodegenBEQTaken(t *testing.T) {
+// 	cg := NewCodeGen()
+// 	bytecode := []int{
+// 		int(opcodes.ADDI), 1, 0, 5,
+// 		int(opcodes.ADDI), 2, 0, 5,
+// 		int(opcodes.BEQ), 1, 2, 16,
+// 		int(opcodes.ADDI), 1, 0, 99,
+// 	}
+//
+// 	asm := cg.Generate(bytecode)
+//
+// 	assert.Contains(t, asm, "cmpq %rbx, %rax")
+// 	assert.Contains(t, asm, "je L16")
+// 	assert.Contains(t, asm, "L16:")
+// }

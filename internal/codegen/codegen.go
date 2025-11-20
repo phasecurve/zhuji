@@ -75,12 +75,29 @@ func (c *CodeGen) Generate(byteCode []int) string {
 			ip = c.parseArithOp(opcodes.DIV, byteCode, ip)
 		case int(opcodes.MOD):
 			ip = c.parseArithOp(opcodes.MOD, byteCode, ip)
+			// case int(opcodes.BEQ):
+			// 	branches := c.findBranches(byteCode)
 		}
 	}
 	c.emit("movq %rax, %rdi\n")
 
 	return c.appendExit()
 }
+
+func (c *CodeGen) findBranches(byteCode []int) map[int]string {
+	branches := map[int]string{}
+	for ip := 0; ip < len(byteCode); {
+		if byteCode[ip] != int(opcodes.BEQ) {
+			ip += 4
+			continue
+		}
+		jmpPos := byteCode[ip+3]
+		branches[jmpPos] = fmt.Sprintf("lbl%d:", jmpPos)
+		ip += 4
+	}
+	return branches
+}
+
 func (c *CodeGen) prependStart() {
 	c.emit(".global _start\n")
 	c.emit("_start:\n")
