@@ -118,3 +118,99 @@ func TestCodegenEndToEndSimple(t *testing.T) {
 	exitCode := cmd.ProcessState.ExitCode()
 	assert.Equal(t, 42, exitCode)
 }
+
+func TestCodegenSubRegisters(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 10,
+		int(opcodes.ADDI), 2, 0, 3,
+		int(opcodes.SUB), 1, 1, 2,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq $10, %rax")
+	assert.Contains(t, asm, "movq $3, %rbx")
+	assert.Contains(t, asm, "subq %rbx, %rax")
+}
+
+func TestCodegenMulRegisters(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 6,
+		int(opcodes.ADDI), 2, 0, 7,
+		int(opcodes.MUL), 1, 1, 2,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq $6, %rax")
+	assert.Contains(t, asm, "movq $7, %rbx")
+	assert.Contains(t, asm, "imulq %rbx, %rax")
+}
+
+func TestCodegenDivRegisters(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+		int(opcodes.ADDI), 2, 0, 6,
+		int(opcodes.DIV), 1, 1, 2,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq $42, %rax")
+	assert.Contains(t, asm, "movq $6, %rbx")
+	assert.Contains(t, asm, "cqto")
+	assert.Contains(t, asm, "idivq %rbx")
+}
+
+func TestCodegenModRegisters(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 17,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.MOD), 1, 1, 2,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq $17, %rax")
+	assert.Contains(t, asm, "movq $5, %rbx")
+	assert.Contains(t, asm, "cqto")
+	assert.Contains(t, asm, "idivq %rbx")
+	assert.Contains(t, asm, "movq %rdx, %rax")
+}
+
+func TestCodegenEndToEndMul(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 6,
+		int(opcodes.ADDI), 2, 0, 7,
+		int(opcodes.MUL), 1, 1, 2,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 42, exitCode)
+}

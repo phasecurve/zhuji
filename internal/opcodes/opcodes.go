@@ -25,3 +25,4 @@ const (
 	BNE
 	MOD
 )
+const MVQ = -1
