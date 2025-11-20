@@ -45,11 +45,11 @@ func TestOpCodesAreDefined(t *testing.T) {
 			opCode:   DRP,
 			expected: 7,
 		}, {
-			name:     "OpCodeEqIs_8",
-			opCode:   EQ,
+			name:     "OpCodeBEqIs_8",
+			opCode:   BEQ,
 			expected: 8,
 		}, {
-			name:     "OpCodeLtIs_9",
+			name:     "OpCodeBLtIs_9",
 			opCode:   BLT,
 			expected: 9,
 		}, {
@@ -61,8 +61,8 @@ func TestOpCodesAreDefined(t *testing.T) {
 			opCode:   GT,
 			expected: 11,
 		}, {
-			name:     "OpCodeGteIs_12",
-			opCode:   GTE,
+			name:     "OpCodeBgeIs_12",
+			opCode:   BGE,
 			expected: 12,
 		}, {
 			name:     "OpCodeJmpIs_13",
@@ -88,6 +88,16 @@ func TestOpCodesAreDefined(t *testing.T) {
 			name:     "OpCodeSwIs_18",
 			opCode:   SW,
 			expected: 18,
+		},
+		{
+			name:     "OpCodeBneIs_19",
+			opCode:   BNE,
+			expected: 19,
+		},
+		{
+			name:     "OpCodeModIs_20",
+			opCode:   MOD,
+			expected: 20,
 		},
 	}
 

@@ -11,15 +11,17 @@ const (
 	DUP
 	SWP
 	DRP
-	EQ
+	BEQ
 	BLT
 	LTE
 	GT
-	GTE
+	BGE
 	JMP
 	JZ
 	JNZ
 	ADDI
 	LW
 	SW
+	BNE
+	MOD
 )

@@ -35,59 +35,66 @@ func (a *Assembler) Assemble(assembly string) []int {
 		})
 		switch tks[0] {
 		case "addi":
-			byteCode = append(byteCode, int(opcodes.ADDI))
-			byteCode = append(byteCode, reg[tks[1]])
-			byteCode = append(byteCode, reg[tks[2]])
-			if n, err := strconv.Atoi(tks[3]); err != nil {
-				log.Fatalf("error while trying to parse an instruction: %v", err)
-			} else {
-				byteCode = append(byteCode, n)
-			}
+			byteCode = handleImmediateOp3(opcodes.ADDI, byteCode, tks)
 		case "add":
-			byteCode = append(byteCode, int(opcodes.ADD))
-			byteCode = append(byteCode, reg[tks[1]])
-			byteCode = append(byteCode, reg[tks[2]])
-			byteCode = append(byteCode, reg[tks[3]])
+			byteCode = handleRegistersOp3(opcodes.ADD, byteCode, tks)
 		case "sub":
-			byteCode = append(byteCode, int(opcodes.SUB))
-			byteCode = append(byteCode, reg[tks[1]])
-			byteCode = append(byteCode, reg[tks[2]])
-			byteCode = append(byteCode, reg[tks[3]])
+			byteCode = handleRegistersOp3(opcodes.SUB, byteCode, tks)
+		case "mul":
+			byteCode = handleRegistersOp3(opcodes.MUL, byteCode, tks)
+		case "div":
+			byteCode = handleRegistersOp3(opcodes.DIV, byteCode, tks)
+		case "mod":
+			byteCode = handleRegistersOp3(opcodes.MOD, byteCode, tks)
 		case "lw":
-			byteCode = append(byteCode, int(opcodes.LW))
-			byteCode = append(byteCode, reg[tks[1]])
-			offsetAndBase := strings.FieldsFunc(tks[2], func(r rune) bool {
-				return r == '(' || r == ')'
-			})
-			offset, err := strconv.Atoi(offsetAndBase[0])
-			if err != nil {
-				log.Fatalf("error attempting to parse offset: %v err: %v", offsetAndBase[0], err)
-			}
-			byteCode = append(byteCode, offset)
-			byteCode = append(byteCode, reg[offsetAndBase[1]])
+			byteCode = handleLoadOrStore(opcodes.LW, byteCode, tks)
 		case "sw":
-			byteCode = append(byteCode, int(opcodes.SW))
-			byteCode = append(byteCode, reg[tks[1]])
-			offsetAndBase := strings.FieldsFunc(tks[2], func(r rune) bool {
-				return r == '(' || r == ')'
-			})
-			offset, err := strconv.Atoi(offsetAndBase[0])
-			if err != nil {
-				log.Fatalf("error attempting to parse offset: %v err: %v", offsetAndBase[0], err)
-			}
-			byteCode = append(byteCode, offset)
-			byteCode = append(byteCode, reg[offsetAndBase[1]])
+			byteCode = handleLoadOrStore(opcodes.SW, byteCode, tks)
 		case "blt":
-			byteCode = append(byteCode, int(opcodes.BLT))
-			byteCode = append(byteCode, reg[tks[1]])
-			byteCode = append(byteCode, reg[tks[2]])
-			if n, err := strconv.Atoi(tks[3]); err != nil {
-				log.Fatalf("error while trying to parse an instruction: %v", err)
-			} else {
-				byteCode = append(byteCode, n)
-			}
+			byteCode = handleImmediateOp3(opcodes.BLT, byteCode, tks)
+		case "beq":
+			byteCode = handleImmediateOp3(opcodes.BEQ, byteCode, tks)
+		case "bne":
+			byteCode = handleImmediateOp3(opcodes.BNE, byteCode, tks)
+		case "bge":
+			byteCode = handleImmediateOp3(opcodes.BGE, byteCode, tks)
 		}
 	}
+	return byteCode
+}
+
+func handleRegistersOp3(op opcodes.OpCode, byteCode []int, tks []string) []int {
+	byteCode = append(byteCode, int(op))
+	byteCode = append(byteCode, reg[tks[1]])
+	byteCode = append(byteCode, reg[tks[2]])
+	byteCode = append(byteCode, reg[tks[3]])
+	return byteCode
+}
+
+func handleImmediateOp3(op opcodes.OpCode, byteCode []int, tks []string) []int {
+	byteCode = append(byteCode, int(op))
+	byteCode = append(byteCode, reg[tks[1]])
+	byteCode = append(byteCode, reg[tks[2]])
+	if n, err := strconv.Atoi(tks[3]); err != nil {
+		log.Fatalf("error while trying to parse an instruction: %v", err)
+	} else {
+		byteCode = append(byteCode, n)
+	}
+	return byteCode
+}
+
+func handleLoadOrStore(op opcodes.OpCode, byteCode []int, tks []string) []int {
+	byteCode = append(byteCode, int(op))
+	byteCode = append(byteCode, reg[tks[1]])
+	offsetAndBase := strings.FieldsFunc(tks[2], func(r rune) bool {
+		return r == '(' || r == ')'
+	})
+	offset, err := strconv.Atoi(offsetAndBase[0])
+	if err != nil {
+		log.Fatalf("error attempting to parse offset: %v err: %v", offsetAndBase[0], err)
+	}
+	byteCode = append(byteCode, offset)
+	byteCode = append(byteCode, reg[offsetAndBase[1]])
 	return byteCode
 }
 
