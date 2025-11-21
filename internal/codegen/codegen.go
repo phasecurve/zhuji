@@ -2,9 +2,29 @@ package codegen
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 	"strings"
 
 	"github.com/phasecurve/zhuji/internal/opcodes"
+)
+
+const (
+	rax = "%rax"
+	rbx = "%rbx"
+	rcx = "%rcx"
+	rdx = "%rdx"
+	rsi = "%rsi"
+	rdi = "%rdi"
+	r8  = "%r8"
+	r9  = "%r9"
+	r10 = "%r10"
+	r11 = "%r11"
+	r12 = "%r12"
+	r13 = "%r13"
+	r14 = "%r14"
+	r15 = "%r15"
+	rbp = "%rbp"
 )
 
 var opCodeToX86Ops = map[opcodes.OpCode]string{
@@ -14,18 +34,29 @@ var opCodeToX86Ops = map[opcodes.OpCode]string{
 	opcodes.MVQ: "movq",
 }
 
+var branchToJump = map[opcodes.OpCode]string{
+	opcodes.BEQ: "je",
+	opcodes.BLT: "jl",
+	opcodes.BNE: "jne",
+	opcodes.BGE: "jge",
+}
+
 var riscTox86Regs = map[int]string{
-	1: "%rax", 2: "%rbx", 3: "%rcx", 4: "%rdx", 5: "%rsi",
-	6: "%rdi", 7: "%r8", 8: "%r9", 9: "%r10", 10: "%r11",
-	11: "%r12", 12: "%r13", 13: "%r14", 14: "%r15", 15: "%rbp",
+	0: "$0",
+	1: rax, 2: rbx, 3: rcx, 4: rdx, 5: rsi,
+	6: rdi, 7: r8, 8: r9, 9: r10, 10: r11,
+	11: r12, 12: r13, 13: r14, 14: r15, 15: rbp,
 }
 
 type CodeGen struct {
-	assembler strings.Builder
+	assembler    strings.Builder
+	traceEnabled bool
 }
 
 func NewCodeGen() *CodeGen {
-	cg := &CodeGen{}
+	cg := &CodeGen{
+		traceEnabled: false,
+	}
 	cg.prependStart()
 	return cg
 }
@@ -34,21 +65,52 @@ func (c *CodeGen) emit(s string) {
 	c.assembler.WriteString(s)
 }
 
+func (c *CodeGen) trace(format string, args ...any) {
+	if c.traceEnabled {
+		_, file, line, ok := runtime.Caller(1)
+		if ok {
+			filePath := strings.Split(file, "/")
+			file = filePath[len(filePath)-1]
+			prefix := fmt.Sprintf("%s:%d ", file, line)
+			fmt.Fprintf(os.Stderr, prefix+format, args...)
+		}
+	}
+}
+
 func (c *CodeGen) parseArithOp(op opcodes.OpCode, byteCode []int, ip int) int {
 	rd := riscTox86Regs[byteCode[ip+1]]
 	rs1 := riscTox86Regs[byteCode[ip+2]]
 	rs2 := riscTox86Regs[byteCode[ip+3]]
-	c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[opcodes.MVQ], rs1, rd))
 	if op == opcodes.DIV || op == opcodes.MOD {
-		c.emit("cqto\n")
+		resultReg := rax
 		if op == opcodes.MOD {
+			resultReg = rdx
+		}
+		if rs1 == rax {
+			c.emit("cqto\n")
 			c.emit(fmt.Sprintf("idivq %s\n", rs2))
-			c.emit(fmt.Sprintf("movq %%rdx, %s\n", rd))
-		} else {
-			c.emit(fmt.Sprintf("%s %s\n", opCodeToX86Ops[op], rs2))
+			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
+		} else if rs1 != rax && rs2 != rax {
+			c.emit(fmt.Sprintf("movq %s, %s\n", rs1, rax))
+			c.emit("cqto\n")
+			c.emit(fmt.Sprintf("idivq %s\n", rs2))
+			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
+		} else if rs1 != rax && rs2 == rax {
+			c.emit(fmt.Sprintf("xchgq %s, %s\n", rs1, rs2))
+			c.emit("cqto\n")
+			c.emit(fmt.Sprintf("idivq %s\n", rs1))
+			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
 		}
 	} else {
-		c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs2, rd))
+		switch rd {
+		case rs1:
+			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs2, rd))
+		case rs2:
+			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs1, rd))
+		default:
+			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[opcodes.MVQ], rs1, rd))
+			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs2, rd))
+		}
 	}
 	return ip + 4
 }
@@ -97,9 +159,9 @@ func (c *CodeGen) Generate(byteCode []int) string {
 	}
 
 	c.insertJumpLabel(branches, len(byteCode))
-	c.emit("movq %rax, %rdi\n")
+	c.emit(fmt.Sprintf("movq %s, %s\n", rax, rdi))
 	asm := c.appendExit()
-	fmt.Printf("%s\n", asm)
+	c.trace("asm:\n%s\n", asm)
 	return asm
 }
 
@@ -109,15 +171,7 @@ func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, b
 	offset := byteCode[ip+3]
 	label := branches[ip+offset]
 	c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
-	if op == opcodes.BLT {
-		c.emit(fmt.Sprintf("jl %s\n", label))
-	} else if op == opcodes.BNE {
-		c.emit(fmt.Sprintf("jne %s\n", label))
-	} else if op == opcodes.BGE {
-		c.emit(fmt.Sprintf("jge %s\n", label))
-	} else {
-		c.emit(fmt.Sprintf("je %s\n", label))
-	}
+	c.emit(fmt.Sprintf("%s %s\n", branchToJump[op], label))
 	return ip + 4
 }
 
@@ -145,4 +199,8 @@ func (c *CodeGen) appendExit() string {
 	c.emit("movq $60, %rax\n")
 	c.emit("syscall\n")
 	return c.assembler.String()
+}
+
+func (c *CodeGen) toggleTraceOnOff() {
+	c.traceEnabled = !c.traceEnabled
 }

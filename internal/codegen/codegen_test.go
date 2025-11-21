@@ -1,6 +1,7 @@
 package codegen
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"testing"
@@ -88,14 +89,80 @@ func TestCodegenAddDifferentDestination(t *testing.T) {
 	assert.Contains(t, asm, "addq %rbx, %rcx")
 }
 
-func TestCodegenEndToEndSimple(t *testing.T) {
+func TestCodegenAddWithX0Source(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+		int(opcodes.ADD), 2, 1, 0,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq %rax, %rbx")
+	assert.Contains(t, asm, "addq $0, %rbx")
+}
+
+func TestCodegenAddDestinationEqualsSource2EndToEnd(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 10,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.ADD), 1, 2, 1,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 15, exitCode)
+}
+
+func TestCodegenNoOutputByDefault(t *testing.T) {
 	cg := NewCodeGen()
 	bytecode := []int{
 		int(opcodes.ADDI), 1, 0, 42,
 	}
 
-	asm := cg.Generate(bytecode)
+	old := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
 
+	cg.Generate(bytecode)
+
+	w.Close()
+	os.Stdout = old
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	output := buf.String()
+
+	assert.Empty(t, output)
+}
+
+func TestCodegenEndToEndSimple(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+	}
+	asm := cg.Generate(bytecode)
 	tmpDir := t.TempDir()
 	asmFile := tmpDir + "/test.s"
 	objFile := tmpDir + "/test.o"
@@ -163,6 +230,74 @@ func TestCodegenDivRegisters(t *testing.T) {
 	assert.Contains(t, asm, "movq $6, %rbx")
 	assert.Contains(t, asm, "cqto")
 	assert.Contains(t, asm, "idivq %rbx")
+}
+
+func TestCodegenDivDifferentDestinationEndToEnd(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+		int(opcodes.ADDI), 2, 0, 6,
+		int(opcodes.DIV), 3, 1, 2,
+		int(opcodes.ADD), 1, 3, 0,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 7, exitCode)
+}
+
+func TestCodegenDivDividendNotInRaxEndToEnd(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 6,
+		int(opcodes.ADDI), 2, 0, 42,
+		int(opcodes.DIV), 3, 2, 1,
+		int(opcodes.ADD), 1, 3, 0,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 7, exitCode)
 }
 
 func TestCodegenModRegisters(t *testing.T) {
