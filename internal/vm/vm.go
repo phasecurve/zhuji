@@ -124,7 +124,7 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			val := vm.memory.LoadWord(addr)
 			vm.registers.Write(rd, val)
 			if vm.traceEnabled {
-				fmt.Printf("[%d] lw x%d, %d(x%d) → x%d = %d\n", ip, rd, offset, rs, addr, val)
+				fmt.Printf("battle through the heavens 243[%d] lw x%d, %d(x%d) → x%d = %d\n", ip, rd, offset, rs, addr, val)
 			}
 			ip += 4
 		case opcodes.BLT:

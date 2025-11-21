@@ -215,18 +215,297 @@ func TestCodegenEndToEndMul(t *testing.T) {
 	assert.Equal(t, 42, exitCode)
 }
 
-// func TestCodegenBEQTaken(t *testing.T) {
-// 	cg := NewCodeGen()
-// 	bytecode := []int{
-// 		int(opcodes.ADDI), 1, 0, 5,
-// 		int(opcodes.ADDI), 2, 0, 5,
-// 		int(opcodes.BEQ), 1, 2, 16,
-// 		int(opcodes.ADDI), 1, 0, 99,
-// 	}
-//
-// 	asm := cg.Generate(bytecode)
-//
-// 	assert.Contains(t, asm, "cmpq %rbx, %rax")
-// 	assert.Contains(t, asm, "je L16")
-// 	assert.Contains(t, asm, "L16:")
-// }
+func TestCodegenBEQTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BEQ), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "je L16")
+	assert.Contains(t, asm, "L16:")
+}
+
+func TestCodegenBEQMidProgramLabel(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BEQ), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+		int(opcodes.ADDI), 3, 0, 42,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "je L16")
+	assert.Contains(t, asm, "L16:")
+	assert.Contains(t, asm, "movq $42, %rcx")
+}
+
+func TestCodegenBEQNotTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BEQ), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "je L16")
+	assert.Contains(t, asm, "movq $99, %rax")
+}
+
+func TestCodegenBEQBackwardJump(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BEQ), 1, 2, -8,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "je L0")
+	assert.Contains(t, asm, "L0:")
+}
+
+func TestCodegenBEQEndToEndTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BEQ), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 5, exitCode)
+}
+
+func TestCodegenBLTTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BLT), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jl L16")
+	assert.Contains(t, asm, "L16:")
+}
+
+func TestCodegenBLTNotTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 10,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BLT), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jl L16")
+	assert.Contains(t, asm, "movq $99, %rax")
+}
+
+func TestCodegenBLTEndToEndTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BLT), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 5, exitCode)
+}
+
+func TestCodegenBNETaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BNE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jne L16")
+	assert.Contains(t, asm, "L16:")
+}
+
+func TestCodegenBNENotTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BNE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jne L16")
+	assert.Contains(t, asm, "movq $99, %rax")
+}
+
+func TestCodegenBNEEndToEndTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BNE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 5, exitCode)
+}
+
+func TestCodegenBGETaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 10,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BGE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jge L16")
+	assert.Contains(t, asm, "L16:")
+}
+
+func TestCodegenBGENotTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.ADDI), 2, 0, 10,
+		int(opcodes.BGE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "cmpq %rbx, %rax")
+	assert.Contains(t, asm, "jge L16")
+	assert.Contains(t, asm, "movq $99, %rax")
+}
+
+func TestCodegenBGEEndToEndTaken(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 10,
+		int(opcodes.ADDI), 2, 0, 5,
+		int(opcodes.BGE), 1, 2, 8,
+		int(opcodes.ADDI), 1, 0, 99,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	tmpDir := t.TempDir()
+	asmFile := tmpDir + "/test.s"
+	objFile := tmpDir + "/test.o"
+	exeFile := tmpDir + "/test"
+
+	err := os.WriteFile(asmFile, []byte(asm), 0644)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("as", "-o", objFile, asmFile)
+	output, err := cmd.CombinedOutput()
+	assert.NoError(t, err, "assembler failed: %s", string(output))
+
+	cmd = exec.Command("ld", "-o", exeFile, objFile)
+	output, err = cmd.CombinedOutput()
+	assert.NoError(t, err, "linker failed: %s", string(output))
+
+	cmd = exec.Command(exeFile)
+	cmd.Run()
+
+	exitCode := cmd.ProcessState.ExitCode()
+	assert.Equal(t, 10, exitCode)
+}

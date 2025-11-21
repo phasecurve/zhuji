@@ -10,6 +10,7 @@ import (
 var opCodeToX86Ops = map[opcodes.OpCode]string{
 	opcodes.ADD: "addq", opcodes.SUB: "subq",
 	opcodes.MUL: "imulq", opcodes.DIV: "idivq",
+	opcodes.BEQ: "cmpq", opcodes.BLT: "cmpq", opcodes.BNE: "cmpq", opcodes.BGE: "cmpq",
 	opcodes.MVQ: "movq",
 }
 
@@ -28,6 +29,7 @@ func NewCodeGen() *CodeGen {
 	cg.prependStart()
 	return cg
 }
+
 func (c *CodeGen) emit(s string) {
 	c.assembler.WriteString(s)
 }
@@ -51,8 +53,16 @@ func (c *CodeGen) parseArithOp(op opcodes.OpCode, byteCode []int, ip int) int {
 	return ip + 4
 }
 
+func (c *CodeGen) insertJumpLabel(branches map[int]string, ip int) {
+	if label, ok := branches[ip]; ok {
+		c.emit(fmt.Sprintf("%s:\n", label))
+	}
+}
+
 func (c *CodeGen) Generate(byteCode []int) string {
+	branches := c.findBranches(byteCode)
 	for ip := 0; ip < len(byteCode); {
+		c.insertJumpLabel(branches, ip)
 		token := byteCode[ip]
 		switch token {
 		case int(opcodes.ADDI):
@@ -75,24 +85,52 @@ func (c *CodeGen) Generate(byteCode []int) string {
 			ip = c.parseArithOp(opcodes.DIV, byteCode, ip)
 		case int(opcodes.MOD):
 			ip = c.parseArithOp(opcodes.MOD, byteCode, ip)
-			// case int(opcodes.BEQ):
-			// 	branches := c.findBranches(byteCode)
+		case int(opcodes.BEQ):
+			ip = c.branchOp(opcodes.BEQ, branches, ip, byteCode)
+		case int(opcodes.BLT):
+			ip = c.branchOp(opcodes.BLT, branches, ip, byteCode)
+		case int(opcodes.BNE):
+			ip = c.branchOp(opcodes.BNE, branches, ip, byteCode)
+		case int(opcodes.BGE):
+			ip = c.branchOp(opcodes.BGE, branches, ip, byteCode)
 		}
 	}
-	c.emit("movq %rax, %rdi\n")
 
-	return c.appendExit()
+	c.insertJumpLabel(branches, len(byteCode))
+	c.emit("movq %rax, %rdi\n")
+	asm := c.appendExit()
+	fmt.Printf("%s\n", asm)
+	return asm
+}
+
+func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, byteCode []int) int {
+	rs1 := byteCode[ip+1]
+	rs2 := byteCode[ip+2]
+	offset := byteCode[ip+3]
+	label := branches[ip+offset]
+	c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
+	if op == opcodes.BLT {
+		c.emit(fmt.Sprintf("jl %s\n", label))
+	} else if op == opcodes.BNE {
+		c.emit(fmt.Sprintf("jne %s\n", label))
+	} else if op == opcodes.BGE {
+		c.emit(fmt.Sprintf("jge %s\n", label))
+	} else {
+		c.emit(fmt.Sprintf("je %s\n", label))
+	}
+	return ip + 4
 }
 
 func (c *CodeGen) findBranches(byteCode []int) map[int]string {
 	branches := map[int]string{}
 	for ip := 0; ip < len(byteCode); {
-		if byteCode[ip] != int(opcodes.BEQ) {
+		opcode := byteCode[ip]
+		if opcode != int(opcodes.BEQ) && opcode != int(opcodes.BLT) && opcode != int(opcodes.BNE) && opcode != int(opcodes.BGE) {
 			ip += 4
 			continue
 		}
-		jmpPos := byteCode[ip+3]
-		branches[jmpPos] = fmt.Sprintf("lbl%d:", jmpPos)
+		jmpPos := ip + byteCode[ip+3]
+		branches[jmpPos] = fmt.Sprintf("L%d", jmpPos)
 		ip += 4
 	}
 	return branches
