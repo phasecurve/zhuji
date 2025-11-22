@@ -129,13 +129,16 @@ func (c *CodeGen) Generate(byteCode []int) string {
 		token := byteCode[ip]
 		switch token {
 		case int(opcodes.ADDI):
-			dest := riscTox86Regs[byteCode[ip+1]]
+			rd := riscTox86Regs[byteCode[ip+1]]
+			rs := riscTox86Regs[byteCode[ip+2]]
 			imm := byteCode[ip+3]
-			op := byteCode[ip+2]
-			if op == 0 {
-				c.emit(fmt.Sprintf("movq $%d, %s", imm, dest))
+			if rs == "$0" {
+				c.emit(fmt.Sprintf("movq $%d, %s", imm, rd))
 			} else {
-				c.emit(fmt.Sprintf("addq $%d, %s", imm, dest))
+				c.emit(fmt.Sprintf("movq %s, %s", rs, rd))
+				if imm != 0 {
+					c.emit(fmt.Sprintf("addq $%d, %s", imm, rd))
+				}
 			}
 			ip += 4
 		case int(opcodes.ADD):

@@ -72,3 +72,38 @@ func TestAssembleMemoryInstructions(t *testing.T) {
 		})
 	}
 }
+
+func TestAssembleLabelDefinition(t *testing.T) {
+	asm := NewAssembler()
+
+	bytecode := asm.Assemble("loop:\naddi x1, x0, 1")
+
+	if len(bytecode) != 4 {
+		t.Errorf("expected 4 bytes (just addi), got %d", len(bytecode))
+	}
+}
+
+func TestAssembleBranchWithLabel(t *testing.T) {
+	asm := NewAssembler()
+
+	bytecode := asm.Assemble("loop:\naddi x1, x0, 1\nblt x1, x2, loop")
+
+	expected := []int{
+		int(opcodes.ADDI), 1, 0, 1,
+		int(opcodes.BLT), 1, 2, -4,
+	}
+	assert.Equal(t, expected, bytecode, "branch should resolve label to PC-relative offset")
+}
+
+func TestAssembleBranchWithLabelNotAtPositionFour(t *testing.T) {
+	asm := NewAssembler()
+
+	bytecode := asm.Assemble("addi x1, x0, 1\nloop:\naddi x2, x0, 2\nblt x1, x2, loop")
+
+	expected := []int{
+		int(opcodes.ADDI), 1, 0, 1,
+		int(opcodes.ADDI), 2, 0, 2,
+		int(opcodes.BLT), 1, 2, -4,
+	}
+	assert.Equal(t, expected, bytecode, "branch at position 8 should jump back to position 4")
+}

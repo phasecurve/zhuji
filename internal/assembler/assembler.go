@@ -25,14 +25,35 @@ func NewAssembler() *Assembler {
 	return &Assembler{}
 }
 
+func (a *Assembler) findLabels(lines []string) map[string]int {
+	labels := map[string]int{}
+
+	ip := 0
+	for _, line := range lines {
+		if strings.Contains(line, ":") {
+			line = ours.TrimSuffix(line, ':')
+			labels[line] = ip
+		} else {
+			ip += 4
+		}
+	}
+
+	return labels
+}
+
 func (a *Assembler) Assemble(assembly string) []int {
 	noComments := a.removeComments(assembly)
 	lines := ours.SplitRemoveEmpty(noComments, "\n")
 	byteCode := []int{}
+	labels := a.findLabels(lines)
+	ip := 0
 	for _, line := range lines {
 		tks := strings.FieldsFunc(line, func(r rune) bool {
 			return r == ' ' || r == ',' || r == '\t'
 		})
+		if strings.Contains(tks[0], ":") {
+			continue
+		}
 		switch tks[0] {
 		case "addi":
 			byteCode = handleImmediateOp3(opcodes.ADDI, byteCode, tks)
@@ -51,14 +72,15 @@ func (a *Assembler) Assemble(assembly string) []int {
 		case "sw":
 			byteCode = handleLoadOrStore(opcodes.SW, byteCode, tks)
 		case "blt":
-			byteCode = handleImmediateOp3(opcodes.BLT, byteCode, tks)
+			byteCode = handleBranchOp(opcodes.BLT, byteCode, tks, labels, ip)
 		case "beq":
-			byteCode = handleImmediateOp3(opcodes.BEQ, byteCode, tks)
+			byteCode = handleBranchOp(opcodes.BEQ, byteCode, tks, labels, ip)
 		case "bne":
-			byteCode = handleImmediateOp3(opcodes.BNE, byteCode, tks)
+			byteCode = handleBranchOp(opcodes.BNE, byteCode, tks, labels, ip)
 		case "bge":
-			byteCode = handleImmediateOp3(opcodes.BGE, byteCode, tks)
+			byteCode = handleBranchOp(opcodes.BGE, byteCode, tks, labels, ip)
 		}
+		ip += 4
 	}
 	return byteCode
 }
@@ -81,6 +103,13 @@ func handleImmediateOp3(op opcodes.OpCode, byteCode []int, tks []string) []int {
 		byteCode = append(byteCode, n)
 	}
 	return byteCode
+}
+
+func handleBranchOp(op opcodes.OpCode, byteCode []int, tks []string, labels map[string]int, ip int) []int {
+	if pos, ok := labels[tks[3]]; ok {
+		tks[3] = strconv.Itoa(pos - ip)
+	}
+	return handleImmediateOp3(op, byteCode, tks)
 }
 
 func handleLoadOrStore(op opcodes.OpCode, byteCode []int, tks []string) []int {

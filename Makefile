@@ -16,3 +16,6 @@ test:
 asm:
 	as -o output.o output.s
 	ld -o output output.o
+
+build-executable:
+	go build -o zhuji ./cmd/zhuji

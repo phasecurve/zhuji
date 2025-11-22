@@ -13,3 +13,12 @@ func SplitRemoveEmpty(value, sep string) []string {
 	}
 	return out
 }
+
+func TrimSuffix(srcString string, toRemove rune) string {
+	rs := []rune(srcString)
+	var replaced string
+	if len(rs) > 0 && rs[len(rs)-1] == toRemove {
+		replaced = string(rs[:len(rs)-1])
+	}
+	return replaced
+}
