@@ -24,7 +24,7 @@ func TestAllRegistersInitialiseToZero(t *testing.T) {
 	r := NewRegisters()
 
 	for i := range 32 {
-		assert.Equal(t, int32(0), r.Read(i))
+		assert.Equal(t, int32(0), r.Read(i), "register x%d", i)
 	}
 }
 
@@ -44,6 +44,6 @@ func TestReadIsNonDestructive(t *testing.T) {
 	firstRead := r.Read(1)
 	secondRead := r.Read(1)
 
-	assert.Equal(t, int32(42), firstRead)
-	assert.Equal(t, int32(42), secondRead)
+	assert.Equal(t, int32(42), firstRead, "value should persist after first read")
+	assert.Equal(t, int32(42), secondRead, "value should persist after second read")
 }
