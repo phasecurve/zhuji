@@ -90,3 +90,29 @@ func TestEndToEndBGETaken(t *testing.T) {
 	}
 	runEndToEnd(t, bytecode, 10, "branch on greater or equal should skip instruction when first >= second")
 }
+
+func TestEndToEndStoreLoad(t *testing.T) {
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+		int(opcodes.SW), 1, 0, 0,
+		int(opcodes.LW), 2, 0, 0,
+		int(opcodes.ADD), 1, 2, 0,
+	}
+	runEndToEnd(t, bytecode, 42, "value stored to memory should be loadable into different register")
+}
+
+func TestEndToEndFibonacci(t *testing.T) {
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 0,
+		int(opcodes.ADDI), 2, 0, 1,
+		int(opcodes.ADDI), 3, 0, 9,
+		int(opcodes.ADDI), 4, 0, 0,
+		int(opcodes.ADD), 5, 1, 2,
+		int(opcodes.ADD), 1, 2, 0,
+		int(opcodes.ADD), 2, 5, 0,
+		int(opcodes.ADDI), 4, 4, 1,
+		int(opcodes.BLT), 4, 3, -16,
+		int(opcodes.ADD), 1, 2, 0,
+	}
+	runEndToEnd(t, bytecode, 55, "fibonacci loop should compute 10th fibonacci number")
+}

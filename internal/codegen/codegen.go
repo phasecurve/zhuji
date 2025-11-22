@@ -25,6 +25,7 @@ const (
 	r14 = "%r14"
 	r15 = "%r15"
 	rbp = "%rbp"
+	rip = "%rip"
 )
 
 var opCodeToX86Ops = map[opcodes.OpCode]string{
@@ -62,7 +63,7 @@ func NewCodeGen() *CodeGen {
 }
 
 func (c *CodeGen) emit(s string) {
-	c.assembler.WriteString(s)
+	c.assembler.WriteString(s + "\n")
 }
 
 func (c *CodeGen) trace(format string, args ...any) {
@@ -87,29 +88,29 @@ func (c *CodeGen) parseArithOp(op opcodes.OpCode, byteCode []int, ip int) int {
 			resultReg = rdx
 		}
 		if rs1 == rax {
-			c.emit("cqto\n")
-			c.emit(fmt.Sprintf("idivq %s\n", rs2))
-			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
+			c.emit("cqto")
+			c.emit(fmt.Sprintf("idivq %s", rs2))
+			c.emit(fmt.Sprintf("movq %s, %s", resultReg, rd))
 		} else if rs1 != rax && rs2 != rax {
-			c.emit(fmt.Sprintf("movq %s, %s\n", rs1, rax))
-			c.emit("cqto\n")
-			c.emit(fmt.Sprintf("idivq %s\n", rs2))
-			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
+			c.emit(fmt.Sprintf("movq %s, %s", rs1, rax))
+			c.emit("cqto")
+			c.emit(fmt.Sprintf("idivq %s", rs2))
+			c.emit(fmt.Sprintf("movq %s, %s", resultReg, rd))
 		} else if rs1 != rax && rs2 == rax {
-			c.emit(fmt.Sprintf("xchgq %s, %s\n", rs1, rs2))
-			c.emit("cqto\n")
-			c.emit(fmt.Sprintf("idivq %s\n", rs1))
-			c.emit(fmt.Sprintf("movq %s, %s\n", resultReg, rd))
+			c.emit(fmt.Sprintf("xchgq %s, %s", rs1, rs2))
+			c.emit("cqto")
+			c.emit(fmt.Sprintf("idivq %s", rs1))
+			c.emit(fmt.Sprintf("movq %s, %s", resultReg, rd))
 		}
 	} else {
 		switch rd {
 		case rs1:
-			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs2, rd))
+			c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], rs2, rd))
 		case rs2:
-			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs1, rd))
+			c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], rs1, rd))
 		default:
-			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[opcodes.MVQ], rs1, rd))
-			c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], rs2, rd))
+			c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[opcodes.MVQ], rs1, rd))
+			c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], rs2, rd))
 		}
 	}
 	return ip + 4
@@ -117,7 +118,7 @@ func (c *CodeGen) parseArithOp(op opcodes.OpCode, byteCode []int, ip int) int {
 
 func (c *CodeGen) insertJumpLabel(branches map[int]string, ip int) {
 	if label, ok := branches[ip]; ok {
-		c.emit(fmt.Sprintf("%s:\n", label))
+		c.emit(fmt.Sprintf("%s:", label))
 	}
 }
 
@@ -132,9 +133,9 @@ func (c *CodeGen) Generate(byteCode []int) string {
 			imm := byteCode[ip+3]
 			op := byteCode[ip+2]
 			if op == 0 {
-				c.emit(fmt.Sprintf("movq $%d, %s\n", imm, dest))
+				c.emit(fmt.Sprintf("movq $%d, %s", imm, dest))
 			} else {
-				c.emit(fmt.Sprintf("addq $%d, %s\n", imm, dest))
+				c.emit(fmt.Sprintf("addq $%d, %s", imm, dest))
 			}
 			ip += 4
 		case int(opcodes.ADD):
@@ -155,11 +156,21 @@ func (c *CodeGen) Generate(byteCode []int) string {
 			ip = c.branchOp(opcodes.BNE, branches, ip, byteCode)
 		case int(opcodes.BGE):
 			ip = c.branchOp(opcodes.BGE, branches, ip, byteCode)
+		case int(opcodes.SW):
+			rs1 := riscTox86Regs[byteCode[ip+1]]
+			offset := byteCode[ip+2]
+			c.emit(fmt.Sprintf("%s %s, mem+%d(%s)", opCodeToX86Ops[opcodes.MVQ], rs1, offset, rip))
+			ip += 4
+		case int(opcodes.LW):
+			rd := riscTox86Regs[byteCode[ip+1]]
+			offset := byteCode[ip+2]
+			c.emit(fmt.Sprintf("%s mem+%d(%s), %s", opCodeToX86Ops[opcodes.MVQ], offset, rip, rd))
+			ip += 4
 		}
 	}
 
 	c.insertJumpLabel(branches, len(byteCode))
-	c.emit(fmt.Sprintf("movq %s, %s\n", rax, rdi))
+	c.emit(fmt.Sprintf("movq %s, %s", rax, rdi))
 	asm := c.appendExit()
 	c.trace("asm:\n%s\n", asm)
 	return asm
@@ -170,8 +181,8 @@ func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, b
 	rs2 := byteCode[ip+2]
 	offset := byteCode[ip+3]
 	label := branches[ip+offset]
-	c.emit(fmt.Sprintf("%s %s, %s\n", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
-	c.emit(fmt.Sprintf("%s %s\n", branchToJump[op], label))
+	c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
+	c.emit(fmt.Sprintf("%s %s", branchToJump[op], label))
 	return ip + 4
 }
 
@@ -191,13 +202,16 @@ func (c *CodeGen) findBranches(byteCode []int) map[int]string {
 }
 
 func (c *CodeGen) prependStart() {
-	c.emit(".global _start\n")
-	c.emit("_start:\n")
+	c.emit(".bss")
+	c.emit("mem: .space 1024")
+	c.emit(".text")
+	c.emit(".global _start")
+	c.emit("_start:")
 }
 
 func (c *CodeGen) appendExit() string {
-	c.emit("movq $60, %rax\n")
-	c.emit("syscall\n")
+	c.emit("movq $60, %rax")
+	c.emit("syscall")
 	return c.assembler.String()
 }
 

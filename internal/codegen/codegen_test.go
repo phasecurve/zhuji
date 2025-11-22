@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/phasecurve/zhuji/internal/opcodes"
@@ -160,6 +161,37 @@ func TestMod(t *testing.T) {
 	assert.Contains(t, asm, "cqto", "modulo should sign-extend rax to rdx:rax")
 	assert.Contains(t, asm, "idivq %rbx", "modulo should use idivq instruction")
 	assert.Contains(t, asm, "movq %rdx, %rax", "modulo should move remainder from rdx to result register")
+}
+
+func TestSW(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 42,
+		int(opcodes.SW), 1, 0, 0,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	bssPos := strings.Index(asm, ".bss\nmem: .space 1024")
+	textPos := strings.Index(asm, ".global _start")
+	storePos := strings.Index(asm, "movq %rax, mem+0(%rip)")
+
+	assert.NotEqual(t, -1, bssPos, "memory section must be declared")
+	assert.NotEqual(t, -1, textPos, "text section must be declared")
+	assert.NotEqual(t, -1, storePos, "store instruction must be present")
+	assert.Less(t, bssPos, textPos, "bss section must come before text section")
+	assert.Less(t, textPos, storePos, "text section must come before store instruction")
+}
+
+func TestLW(t *testing.T) {
+	cg := NewCodeGen()
+	bytecode := []int{
+		int(opcodes.LW), 1, 0, 0,
+	}
+
+	asm := cg.Generate(bytecode)
+
+	assert.Contains(t, asm, "movq mem+0(%rip), %rax", "load should read from memory offset into register")
 }
 
 func TestHasEntryPoint(t *testing.T) {
