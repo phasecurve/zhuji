@@ -13,25 +13,53 @@ mem: .space 1024
 .text
 .global _start
 _start:
-call L8
-movq $1, %rbx
-L8:
-movq $2, %rcx
-ret
+call L4
 movq %rax, %rdi
 movq $60, %rax
 syscall
+L4:
+pushq %rbp
+movq %rsp, %rbp
+movq %rbp, %rsp
+popq %rbp
+ret
 `
 	bytecode := []int{
-		int(opcodes.JAL), 1, 0, 8,
-		int(opcodes.ADDI), 2, 0, 1,
-		int(opcodes.ADDI), 3, 0, 2,
+		int(opcodes.JAL), 1, 0, 4,
 		int(opcodes.JALR), 0, 1, 0,
 	}
 
 	cg := NewCodeGen()
 	asm := cg.Generate(bytecode)
-	assert.Equal(t, expectedAsm, asm, "asm should have call to L*, label L8: and ret")
+	assert.Equal(t, expectedAsm, asm, "asm should have call, label, prologue/epilogue and return")
+}
+
+func TestPrologueEpilogue(t *testing.T) {
+	expectedAsm := `.bss
+mem: .space 1024
+.text
+.global _start
+_start:
+call L4
+movq %rax, %rdi
+movq $60, %rax
+syscall
+L4:
+pushq %rbp
+movq %rsp, %rbp
+movq %rbp, %rsp
+popq %rbp
+ret
+`
+	bytecode := []int{
+		int(opcodes.JAL), 1, 0, 4,
+		int(opcodes.JALR), 0, 1, 0,
+	}
+
+	cg := NewCodeGen()
+	asm := cg.Generate(bytecode)
+
+	assert.Equal(t, expectedAsm, asm, "asm should have prologue and epilogue")
 }
 
 func TestJALNotAtStart(t *testing.T) {

@@ -117,16 +117,22 @@ func (c *CodeGen) parseArithOp(op opcodes.OpCode, bytecode []int, ip int) int {
 	return ip + 4
 }
 
-func (c *CodeGen) insertJumpLabel(branches map[int]string, ip int) {
-	if label, ok := branches[ip]; ok {
+func (c *CodeGen) insertJumpLabel(branches map[int]string, functions map[int]string, ip int) {
+	if label, ok := functions[ip]; ok {
+		c.emit(fmt.Sprintf("%s:\npushq %%rbp", label))
+	} else if label, ok := branches[ip]; ok {
 		c.emit(fmt.Sprintf("%s:", label))
 	}
 }
 
 func (c *CodeGen) Generate(bytecode []int) string {
 	branches := c.findBranches(bytecode)
+	functions := c.findFunctions(bytecode)
 	for ip := 0; ip < len(bytecode); {
-		c.insertJumpLabel(branches, ip)
+		c.insertJumpLabel(branches, functions, ip)
+		if functions[ip] != "" {
+			c.emit("movq %rsp, %rbp")
+		}
 		token := bytecode[ip]
 		switch token {
 		case int(opcodes.ADDI):
@@ -173,22 +179,30 @@ func (c *CodeGen) Generate(bytecode []int) string {
 		case int(opcodes.JAL):
 			offset := bytecode[ip+3]
 			label := fmt.Sprintf("L%d", ip+offset)
-
-			branches[offset] = label
+			branches[ip+offset] = label
 			c.emit(fmt.Sprintf("%s %s", opCodeToX86Ops[opcodes.JAL], label))
+			if !strings.Contains(c.assembler.String(), "{{{syscall}}}") {
+				c.emit("{{{syscall}}}")
+			}
 			ip += 4
 		case int(opcodes.JALR):
 			rd := bytecode[ip+1]
 			if rd != 0 {
 				panic("JALR with rd != 0 not supported in x86-64 codegen (only return pattern supported)")
 			}
+			if functions[ip] != "" {
+				c.emit("movq %rbp, %rsp")
+				c.emit("popq %rbp")
+			}
 			c.emit(opCodeToX86Ops[opcodes.JALR])
 			ip += 4
 		}
 	}
 
-	c.insertJumpLabel(branches, len(bytecode))
-	c.emit(fmt.Sprintf("movq %s, %s", rax, rdi))
+	c.insertJumpLabel(branches, functions, len(bytecode))
+	if !strings.Contains(c.assembler.String(), "{{{syscall}}}") {
+		c.emit("{{{syscall}}}")
+	}
 	asm := c.appendExit()
 	c.trace("asm:\n%s\n", asm)
 	return asm
@@ -202,6 +216,22 @@ func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, b
 	c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
 	c.emit(fmt.Sprintf("%s %s", branchToJump[op], label))
 	return ip + 4
+}
+
+func (c *CodeGen) findFunctions(bytecode []int) map[int]string {
+	functions := map[int]string{}
+	for ip := 0; ip < len(bytecode); {
+		opcode := bytecode[ip]
+		if opcode != int(opcodes.JAL) {
+			ip += 4
+			continue
+		}
+
+		jmpPos := ip + bytecode[ip+3]
+		functions[jmpPos] = fmt.Sprintf("L%d", jmpPos)
+		ip += 4
+	}
+	return functions
 }
 
 func (c *CodeGen) findBranches(bytecode []int) map[int]string {
@@ -228,9 +258,8 @@ func (c *CodeGen) prependStart() {
 }
 
 func (c *CodeGen) appendExit() string {
-	c.emit("movq $60, %rax")
-	c.emit("syscall")
-	return c.assembler.String()
+	asm := c.assembler.String()
+	return strings.ReplaceAll(asm, "{{{syscall}}}", "movq %rax, %rdi\nmovq $60, %rax\nsyscall")
 }
 
 func (c *CodeGen) toggleTraceOnOff() {
