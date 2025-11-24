@@ -135,6 +135,19 @@ func (vm *vm) Execute(byteCode ByteCode) {
 			ip = vm.execBranch(opCode, byteCode, ip, func(v1 int32, v2 int32) bool { return v1 != v2 })
 		case opcodes.BGE:
 			ip = vm.execBranch(opCode, byteCode, ip, func(v1 int32, v2 int32) bool { return v1 >= v2 })
+		case opcodes.JAL:
+			rd := byteCode[ip+1]
+			offset := byteCode[ip+3]
+			vm.registers.Write(rd, int32(ip)+4)
+			ip = ip + offset
+		case opcodes.JALR:
+			rd := byteCode[ip+1]
+			rs := byteCode[ip+2]
+			offset := byteCode[ip+3]
+			if rd != 0 {
+				vm.registers.Write(rd, int32(ip+4))
+			}
+			ip = int(vm.registers.Read(rs)) + offset
 		}
 	}
 }

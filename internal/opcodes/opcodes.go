@@ -25,4 +25,6 @@ const (
 	SW   OpCode = 18
 	BNE  OpCode = 19
 	MOD  OpCode = 20
+	JAL  OpCode = 21
+	JALR OpCode = 22
 )

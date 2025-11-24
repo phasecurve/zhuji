@@ -55,6 +55,10 @@ func (a *Assembler) Assemble(assembly string) []int {
 			continue
 		}
 		switch tks[0] {
+		case "li":
+			byteCode = handleImmediateOp3(opcodes.ADDI, byteCode, []string{"li", tks[1], "x0", tks[2]})
+		case "mv":
+			byteCode = handleImmediateOp3(opcodes.ADDI, byteCode, []string{"mv", tks[1], tks[2], "0"})
 		case "addi":
 			byteCode = handleImmediateOp3(opcodes.ADDI, byteCode, tks)
 		case "add":
@@ -79,6 +83,8 @@ func (a *Assembler) Assemble(assembly string) []int {
 			byteCode = handleBranchOp(opcodes.BNE, byteCode, tks, labels, ip)
 		case "bge":
 			byteCode = handleBranchOp(opcodes.BGE, byteCode, tks, labels, ip)
+		case "jal":
+			byteCode = handleBranchOp2(opcodes.JAL, byteCode, tks, labels, ip)
 		}
 		ip += 4
 	}
@@ -103,6 +109,15 @@ func handleImmediateOp3(op opcodes.OpCode, byteCode []int, tks []string) []int {
 		byteCode = append(byteCode, n)
 	}
 	return byteCode
+}
+
+func handleBranchOp2(op opcodes.OpCode, byteCode []int, tks []string, labels map[string]int, ip int) []int {
+	jumpTo := tks[2]
+	tks[2] = "x0" // unused position for JAL
+	if pos, ok := labels[jumpTo]; ok {
+		tks = append(tks, strconv.Itoa(pos-ip))
+	}
+	return handleImmediateOp3(op, byteCode, tks)
 }
 
 func handleBranchOp(op opcodes.OpCode, byteCode []int, tks []string, labels map[string]int, ip int) []int {

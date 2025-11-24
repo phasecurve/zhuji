@@ -7,6 +7,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestJAL(t *testing.T) {
+	expectedAsm := `.bss
+mem: .space 1024
+.text
+.global _start
+_start:
+call L8
+movq $1, %rbx
+L8:
+movq $2, %rcx
+ret
+movq %rax, %rdi
+movq $60, %rax
+syscall
+`
+	bytecode := []int{
+		int(opcodes.JAL), 1, 0, 8,
+		int(opcodes.ADDI), 2, 0, 1,
+		int(opcodes.ADDI), 3, 0, 2,
+		int(opcodes.JALR), 0, 1, 0,
+	}
+
+	cg := NewCodeGen()
+	asm := cg.Generate(bytecode)
+	assert.Equal(t, expectedAsm, asm, "asm should have call to L*, label L8: and ret")
+}
+
+func TestJALNotAtStart(t *testing.T) {
+	bytecode := []int{
+		int(opcodes.ADDI), 1, 0, 5,
+		int(opcodes.JAL), 2, 0, 8,
+		int(opcodes.ADDI), 3, 0, 1,
+		int(opcodes.ADDI), 4, 0, 2,
+		int(opcodes.JALR), 0, 2, 0,
+	}
+
+	cg := NewCodeGen()
+	asm := cg.Generate(bytecode)
+	assert.Contains(t, asm, "call L12", "JAL at IP=4 with offset=8 should call L12")
+	assert.Contains(t, asm, "L12:", "label should be at target IP=12")
+}
+
 func TestBEQ(t *testing.T) {
 	cases := []struct {
 		name          string

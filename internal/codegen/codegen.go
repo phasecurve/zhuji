@@ -32,6 +32,7 @@ var opCodeToX86Ops = map[opcodes.OpCode]string{
 	opcodes.ADD: "addq", opcodes.SUB: "subq",
 	opcodes.MUL: "imulq", opcodes.DIV: "idivq",
 	opcodes.BEQ: "cmpq", opcodes.BLT: "cmpq", opcodes.BNE: "cmpq", opcodes.BGE: "cmpq",
+	opcodes.JAL: "call", opcodes.JALR: "ret",
 	opcodes.MVQ: "movq",
 }
 
@@ -78,10 +79,10 @@ func (c *CodeGen) trace(format string, args ...any) {
 	}
 }
 
-func (c *CodeGen) parseArithOp(op opcodes.OpCode, byteCode []int, ip int) int {
-	rd := riscTox86Regs[byteCode[ip+1]]
-	rs1 := riscTox86Regs[byteCode[ip+2]]
-	rs2 := riscTox86Regs[byteCode[ip+3]]
+func (c *CodeGen) parseArithOp(op opcodes.OpCode, bytecode []int, ip int) int {
+	rd := riscTox86Regs[bytecode[ip+1]]
+	rs1 := riscTox86Regs[bytecode[ip+2]]
+	rs2 := riscTox86Regs[bytecode[ip+3]]
 	if op == opcodes.DIV || op == opcodes.MOD {
 		resultReg := rax
 		if op == opcodes.MOD {
@@ -122,16 +123,16 @@ func (c *CodeGen) insertJumpLabel(branches map[int]string, ip int) {
 	}
 }
 
-func (c *CodeGen) Generate(byteCode []int) string {
-	branches := c.findBranches(byteCode)
-	for ip := 0; ip < len(byteCode); {
+func (c *CodeGen) Generate(bytecode []int) string {
+	branches := c.findBranches(bytecode)
+	for ip := 0; ip < len(bytecode); {
 		c.insertJumpLabel(branches, ip)
-		token := byteCode[ip]
+		token := bytecode[ip]
 		switch token {
 		case int(opcodes.ADDI):
-			rd := riscTox86Regs[byteCode[ip+1]]
-			rs := riscTox86Regs[byteCode[ip+2]]
-			imm := byteCode[ip+3]
+			rd := riscTox86Regs[bytecode[ip+1]]
+			rs := riscTox86Regs[bytecode[ip+2]]
+			imm := bytecode[ip+3]
 			if rs == "$0" {
 				c.emit(fmt.Sprintf("movq $%d, %s", imm, rd))
 			} else {
@@ -142,62 +143,76 @@ func (c *CodeGen) Generate(byteCode []int) string {
 			}
 			ip += 4
 		case int(opcodes.ADD):
-			ip = c.parseArithOp(opcodes.ADD, byteCode, ip)
+			ip = c.parseArithOp(opcodes.ADD, bytecode, ip)
 		case int(opcodes.SUB):
-			ip = c.parseArithOp(opcodes.SUB, byteCode, ip)
+			ip = c.parseArithOp(opcodes.SUB, bytecode, ip)
 		case int(opcodes.MUL):
-			ip = c.parseArithOp(opcodes.MUL, byteCode, ip)
+			ip = c.parseArithOp(opcodes.MUL, bytecode, ip)
 		case int(opcodes.DIV):
-			ip = c.parseArithOp(opcodes.DIV, byteCode, ip)
+			ip = c.parseArithOp(opcodes.DIV, bytecode, ip)
 		case int(opcodes.MOD):
-			ip = c.parseArithOp(opcodes.MOD, byteCode, ip)
+			ip = c.parseArithOp(opcodes.MOD, bytecode, ip)
 		case int(opcodes.BEQ):
-			ip = c.branchOp(opcodes.BEQ, branches, ip, byteCode)
+			ip = c.branchOp(opcodes.BEQ, branches, ip, bytecode)
 		case int(opcodes.BLT):
-			ip = c.branchOp(opcodes.BLT, branches, ip, byteCode)
+			ip = c.branchOp(opcodes.BLT, branches, ip, bytecode)
 		case int(opcodes.BNE):
-			ip = c.branchOp(opcodes.BNE, branches, ip, byteCode)
+			ip = c.branchOp(opcodes.BNE, branches, ip, bytecode)
 		case int(opcodes.BGE):
-			ip = c.branchOp(opcodes.BGE, branches, ip, byteCode)
+			ip = c.branchOp(opcodes.BGE, branches, ip, bytecode)
 		case int(opcodes.SW):
-			rs1 := riscTox86Regs[byteCode[ip+1]]
-			offset := byteCode[ip+2]
+			rs1 := riscTox86Regs[bytecode[ip+1]]
+			offset := bytecode[ip+2]
 			c.emit(fmt.Sprintf("%s %s, mem+%d(%s)", opCodeToX86Ops[opcodes.MVQ], rs1, offset, rip))
 			ip += 4
 		case int(opcodes.LW):
-			rd := riscTox86Regs[byteCode[ip+1]]
-			offset := byteCode[ip+2]
+			rd := riscTox86Regs[bytecode[ip+1]]
+			offset := bytecode[ip+2]
 			c.emit(fmt.Sprintf("%s mem+%d(%s), %s", opCodeToX86Ops[opcodes.MVQ], offset, rip, rd))
+			ip += 4
+		case int(opcodes.JAL):
+			offset := bytecode[ip+3]
+			label := fmt.Sprintf("L%d", ip+offset)
+
+			branches[offset] = label
+			c.emit(fmt.Sprintf("%s %s", opCodeToX86Ops[opcodes.JAL], label))
+			ip += 4
+		case int(opcodes.JALR):
+			rd := bytecode[ip+1]
+			if rd != 0 {
+				panic("JALR with rd != 0 not supported in x86-64 codegen (only return pattern supported)")
+			}
+			c.emit(opCodeToX86Ops[opcodes.JALR])
 			ip += 4
 		}
 	}
 
-	c.insertJumpLabel(branches, len(byteCode))
+	c.insertJumpLabel(branches, len(bytecode))
 	c.emit(fmt.Sprintf("movq %s, %s", rax, rdi))
 	asm := c.appendExit()
 	c.trace("asm:\n%s\n", asm)
 	return asm
 }
 
-func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, byteCode []int) int {
-	rs1 := byteCode[ip+1]
-	rs2 := byteCode[ip+2]
-	offset := byteCode[ip+3]
+func (c *CodeGen) branchOp(op opcodes.OpCode, branches map[int]string, ip int, bytecode []int) int {
+	rs1 := bytecode[ip+1]
+	rs2 := bytecode[ip+2]
+	offset := bytecode[ip+3]
 	label := branches[ip+offset]
 	c.emit(fmt.Sprintf("%s %s, %s", opCodeToX86Ops[op], riscTox86Regs[rs2], riscTox86Regs[rs1]))
 	c.emit(fmt.Sprintf("%s %s", branchToJump[op], label))
 	return ip + 4
 }
 
-func (c *CodeGen) findBranches(byteCode []int) map[int]string {
+func (c *CodeGen) findBranches(bytecode []int) map[int]string {
 	branches := map[int]string{}
-	for ip := 0; ip < len(byteCode); {
-		opcode := byteCode[ip]
+	for ip := 0; ip < len(bytecode); {
+		opcode := bytecode[ip]
 		if opcode != int(opcodes.BEQ) && opcode != int(opcodes.BLT) && opcode != int(opcodes.BNE) && opcode != int(opcodes.BGE) {
 			ip += 4
 			continue
 		}
-		jmpPos := ip + byteCode[ip+3]
+		jmpPos := ip + bytecode[ip+3]
 		branches[jmpPos] = fmt.Sprintf("L%d", jmpPos)
 		ip += 4
 	}

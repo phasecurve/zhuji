@@ -107,3 +107,38 @@ func TestAssembleBranchWithLabelNotAtPositionFour(t *testing.T) {
 	}
 	assert.Equal(t, expected, bytecode, "branch at position 8 should jump back to position 4")
 }
+
+func TestAssemblePseudoInstructions(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected []int
+		message  string
+	}{
+		{"li", "li x1, 42", []int{int(opcodes.ADDI), 1, 0, 42}, "li should expand to addi rd, x0, imm"},
+		{"mv", "mv x1, x2", []int{int(opcodes.ADDI), 1, 2, 0}, "mv should expand to addi rd, rs, 0"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			asm := NewAssembler()
+			bytecode := asm.Assemble(tc.input)
+			assert.Equal(t, tc.expected, bytecode, tc.message)
+		})
+	}
+}
+
+func TestAssembleJALWithLabel(t *testing.T) {
+	asm := NewAssembler()
+
+	bytecode := asm.Assemble("addi x2, x0, 3\naddi x1, x0, 1\nloop:\nadd x1, x1, x1\nblt x2, x1, 8\njal x0, loop")
+
+	expected := []int{
+		int(opcodes.ADDI), 2, 0, 3,
+		int(opcodes.ADDI), 1, 0, 1,
+		int(opcodes.ADD), 1, 1, 1,
+		int(opcodes.BLT), 2, 1, 8,
+		int(opcodes.JAL), 0, 0, -8,
+	}
+	assert.Equal(t, expected, bytecode, "branch should resolve label to PC-relative offset")
+}
